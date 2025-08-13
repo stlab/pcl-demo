@@ -2,3 +2,4 @@
 
 mod hero;
 pub use hero::Hero;
+mod default_document;
