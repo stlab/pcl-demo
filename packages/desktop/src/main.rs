@@ -1,11 +1,15 @@
-use dioxus::prelude::*;
+use dioxus::{desktop::WindowBuilder, prelude::*};
 
 use ui::Hero;
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
 
 fn main() {
-    dioxus::launch(App);
+    dioxus::LaunchBuilder::desktop().with_cfg(
+        dioxus::desktop::Config::default()
+            .with_window(
+                WindowBuilder::new().with_always_on_top(false)))
+    .launch(App);
 }
 
 #[component]
