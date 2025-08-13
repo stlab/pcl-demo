@@ -1,3 +1,12 @@
+# Set up
+
+This project requires dioxus version = "0.7.0-alpha.3".  To get it:
+
+```
+curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash\n\n
+cargo binstall dioxus-cli@0.7.0-rc.0 --force
+```
+
 # Development
 
 Your new workspace contains a member crate for each of the web, desktop and mobile platforms, and a `ui` crate for components that are shared between multiple platforms:
