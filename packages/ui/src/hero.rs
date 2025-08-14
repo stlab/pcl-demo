@@ -1,26 +1,19 @@
 use dioxus::prelude::*;
-use crate::default_document::{self, *};
+use crate::application_state::*;
 
 const HERO_CSS: Asset = asset!("/assets/styling/hero.css");
 const HEADER_SVG: Asset = asset!("/assets/header.svg");
 
 #[component]
-pub fn Hero() -> Element {
-    default_document::default_document();
+pub fn Hero(document: ReadSignal<ApplicationState>) -> Element {
+
+    let html = document.read().the_only_document.to_string();
+
     rsx! {
         document::Link { rel: "stylesheet", href: HERO_CSS }
-
         div {
             id: "hero",
-            img { src: HEADER_SVG, id: "header" }
-            div { id: "links",
-                a { href: "https://dioxuslabs.com/learn/0.6/", "📚 Learn Dioxus" }
-                a { href: "https://dioxuslabs.com/awesome", "🚀 Awesome Dioxus" }
-                a { href: "https://github.com/dioxus-community/", "📡 Community Libraries" }
-                a { href: "https://github.com/DioxusLabs/sdk", "⚙️ Dioxus Development Kit" }
-                a { href: "https://marketplace.visualstudio.com/items?itemName=DioxusLabs.dioxus", "💫 VSCode Extension" }
-                a { href: "https://discord.gg/XgGxMSkvUM", "👋 Community Discord" }
-            }
+            dangerous_inner_html: html
         }
     }
 }
