@@ -10,18 +10,20 @@ cargo binstall dioxus-cli@0.7.0-rc.0 --force
 # Running the app
 
 
+From the top-level directory,
+
 ```
 dx serve --package <package-name>
 ```
 
-Or:
+Currently, `desktop` and `mobile` packages work. Page served by the `web` package is blank white; contains no SVG.
+
+The following will not work due to inability to find "image.svg" in the current directory.
 
 ```bash
 cd packages/<package-name>
 dx serve
 ```
-
-Currently, `desktop` and `mobile` packages work. Page served by the `web` package is blank white; contains no SVG.
 
 # Development
 

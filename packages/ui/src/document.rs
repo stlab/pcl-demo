@@ -1,18 +1,20 @@
 use std::{fs::File, io::Read, io::Result};
 use std::path::Path;
 
-pub type Document = String;
-
-pub trait DocumentMethods where Self: Sized {
-    fn new_from_file<P: AsRef<Path>>(path: P) -> Result<Self>;
-    fn to_html(self: &Self) -> String;
+/// In-memory representation of a pcl-demo document.
+pub struct Document {
+    html: String
 }
 
-impl DocumentMethods for Document {
-    fn new_from_file<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let mut r = Self::new();
-        File::open(path)?.read_to_string(&mut r).map(|_| r)
+impl Document {
+
+    /// Returns the in-memory representation of the pcl-demo document at `p`.
+    pub fn new_from_file<P: AsRef<Path>>(p: P) -> Result<Self> {
+        let mut r = Document { html: String::new() };
+        File::open(p)?.read_to_string(&mut r.html).map(|_| r)
     }
 
-    fn to_html(self: &Self) -> String { self.clone() }
+    /// Returns the HTML to render `self`.
+    pub fn to_html(self: &Self) -> String { self.html.clone() }
+
 }

@@ -1,12 +1,13 @@
 use dioxus::prelude::*;
 use crate::application_state::*;
-use crate::document::*;
 
 const DOCUMENT_CSS: Asset = asset!("/assets/styling/document.css");
 
+/// The UI element that describes a document.
 #[component]
 pub fn DocumentUI(application_state: ReadSignal<ApplicationState>) -> Element {
 
+    // Convert the document to something we can display.
     let html = application_state.read().the_only_document.to_html();
 
     rsx! {

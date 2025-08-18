@@ -10,9 +10,10 @@ pub struct ApplicationState {
 
 impl ApplicationState {
 
-    ///
-    pub fn new() -> ApplicationState {
-        ApplicationState {
+    /// Returns the state of a newly-launched application
+    pub fn new() -> Self {
+        // Read the application's one file from the standard location.
+        Self {
             the_only_document: Document::new_from_file("image.svg")
                 .expect("Failed to read document.")
         }
