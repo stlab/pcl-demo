@@ -1,7 +1,7 @@
 //! This crate contains all shared UI for the workspace.
 
-mod hero;
-pub use hero::Hero;
+mod document_ui;
+pub use document_ui::DocumentUI;
 
 mod application_state;
 pub use application_state::*;
