@@ -5,6 +5,7 @@ pub type Document = String;
 
 pub trait DocumentMethods where Self: Sized {
     fn new_from_file<P: AsRef<Path>>(path: P) -> Result<Self>;
+    fn to_html(self: &Self) -> String;
 }
 
 impl DocumentMethods for Document {
@@ -12,4 +13,6 @@ impl DocumentMethods for Document {
         let mut r = Self::new();
         File::open(path)?.read_to_string(&mut r).map(|_| r)
     }
+
+    fn to_html(self: &Self) -> String { self.clone() }
 }

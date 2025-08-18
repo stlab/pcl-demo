@@ -17,7 +17,7 @@ fn main() {
 fn App() -> Element {
     // Build cool things ✌️
 
-    let mut state = use_signal(|| ApplicationState::initial());
+    let state = use_signal(|| ApplicationState::initial());
 
     rsx! {
         // Global app resources
