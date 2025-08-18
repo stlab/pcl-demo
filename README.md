@@ -9,18 +9,19 @@ cargo binstall dioxus-cli@0.7.0-rc.0 --force
 
 # Running the app
 
+
 ```
-dx serve --package desktop
+dx serve --package <package-name>
 ```
 
 Or:
 
 ```bash
-cd desktop
+cd packages/<package-name>
 dx serve
 ```
 
-Packages other than desktop haven't yet been tested.
+Currently, `desktop` and `mobile` packages work. Page served by the `web` package is blank white; contains no SVG.
 
 # Development
 
