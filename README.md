@@ -7,9 +7,24 @@ curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-
 cargo binstall dioxus-cli@0.7.0-rc.0 --force
 ```
 
+# Running the app
+
+```
+dx serve --package desktop
+```
+
+Or:
+
+```bash
+cd desktop
+dx serve
+```
+
+Packages other than desktop haven't yet been tested.
+
 # Development
 
-Your new workspace contains a member crate for each of the web, desktop and mobile platforms, and a `ui` crate for components that are shared between multiple platforms:
+This workspace contains a member crate for each of the web, desktop and mobile platforms, and a `ui` crate for components that are shared between multiple platforms:
 
 ```
 your_project/
@@ -50,17 +65,3 @@ ui/
 │  ├─ lib.rs # The entrypoint for the ui crate
 │  ├─ hero.rs # The Hero component that will be used in every platform
 ```
-
-### Serving Your App
-
-Navigate to the platform crate of your choice:
-```bash
-cd web
-```
-
-and serve:
-
-```bash
-dx serve
-```
-
