@@ -8,6 +8,3 @@ pub use application_state::*;
 
 mod document;
 pub use document::*;
-
-// Private modules
-mod default_document;
