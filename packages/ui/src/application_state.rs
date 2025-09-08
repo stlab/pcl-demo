@@ -14,7 +14,7 @@ impl ApplicationState {
     pub fn new() -> Self {
         // Read the application's one file from the standard location.
         Self {
-            the_only_document: Document::new_from_file("image.svg")
+            the_only_document: Document::new_from_file("image.json")
                 .expect("Failed to read document.")
         }
     }
