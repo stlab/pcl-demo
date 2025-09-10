@@ -30,7 +30,7 @@ fn create_menu_bar() -> Menu {
     // On Windows/Linux, this is not needed and File menu can be first
     #[cfg(target_os = "macos")]
     {
-        let app_menu = Submenu::new("PCL-demo", true);
+        let app_menu = Submenu::new("CodeLess", true);
         menubar.append(&app_menu).unwrap();
     }
 

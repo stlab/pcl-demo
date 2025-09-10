@@ -3,6 +3,10 @@ name = "desktop"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "CodeLess"
+path = "src/main.rs"
+
 [dependencies]
 dioxus = { workspace = true, features = [] }
 ui = { workspace = true }
