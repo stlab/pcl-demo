@@ -20,11 +20,8 @@ impl Document {
         let f = File::open(p)
             .context(format!("Failed to open: {:?}", p))?;
 
-        let r = serde_json::from_reader(f)
-            .context(format!("Invalid json: {:?}", p))?;
-
-        // Can't just return r because it has the wrong error type.
-        Ok(r)
+        serde_json::from_reader(f)
+            .context(format!("Invalid json: {:?}", p))
     }
 
     /// Returns the HTML to render `self`.
