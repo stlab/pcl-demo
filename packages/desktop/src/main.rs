@@ -1,11 +1,35 @@
 use dioxus::{desktop::WindowBuilder, prelude::*};
-use dioxus::desktop::muda::{Menu, MenuItem, PredefinedMenuItem, Submenu};
+use dioxus::desktop::muda::{Menu, MenuItem, PredefinedMenuItem, Submenu, MenuId};
 use dioxus::desktop::muda::accelerator::{Accelerator, Modifiers, Code};
+use std::path::PathBuf;
 
 use ui::{ApplicationState, DocumentUI};
 
 /// The top-level stylesheet for the application.
 const MAIN_CSS: Asset = asset!("/assets/main.css");
+
+/// Shows an open file dialog and returns the selected path
+fn show_open_dialog() -> Option<PathBuf> {
+    use rfd::FileDialog;
+    
+    FileDialog::new()
+        .add_filter("JSON Documents", &["json"])
+        .add_filter("All Files", &["*"])
+        .set_title("Open Document")
+        .pick_file()
+}
+
+/// Shows a save file dialog and returns the selected path
+fn show_save_dialog() -> Option<PathBuf> {
+    use rfd::FileDialog;
+    
+    FileDialog::new()
+        .add_filter("JSON Documents", &["json"])
+        .add_filter("All Files", &["*"])
+        .set_title("Save Document")
+        .set_file_name("document.json")
+        .save_file()
+}
 
 /// Runs the application.
 fn main() {
@@ -55,11 +79,11 @@ fn create_menu_bar() -> Menu {
     // Create File submenu
     let file_menu = Submenu::new("File", true);
     
-    // Add File menu items
-    let new_item = MenuItem::new("New", true, menu_key(Code::KeyN));
-    let open_item = MenuItem::new("Open...", true, menu_key(Code::KeyO));
-    let save_item = MenuItem::new("Save", true, menu_key(Code::KeyS));
-    let save_as_item = MenuItem::new("Save As...", true, nonstandard_menu_key(Code::KeyS, BASE_MODIFIER | Modifiers::SHIFT));
+    // Add File menu items with explicit IDs
+    let new_item = MenuItem::with_id(MenuId::new("new"), "New", true, menu_key(Code::KeyN));
+    let open_item = MenuItem::with_id(MenuId::new("open"), "Open...", true, menu_key(Code::KeyO));
+    let save_item = MenuItem::with_id(MenuId::new("save"), "Save", true, menu_key(Code::KeyS));
+    let save_as_item = MenuItem::with_id(MenuId::new("save_as"), "Save As...", true, nonstandard_menu_key(Code::KeyS, BASE_MODIFIER | Modifiers::SHIFT));
     let separator = PredefinedMenuItem::separator();
     let quit_item = PredefinedMenuItem::quit(Some("Quit"));
     
@@ -82,27 +106,52 @@ fn create_menu_bar() -> Menu {
 fn AppUI() -> Element {
 
     // The state of the whole application
-    let state = use_signal(|| ApplicationState::new());
+    let mut state = use_signal(|| ApplicationState::new());
 
     // Handle menu events
     dioxus::desktop::use_muda_event_handler(move |event| {
         let dioxus::desktop::muda::MenuEvent { id } = event;
+        println!("Menu event received with ID: '{}'", id.0);
         match id.0.as_str() {
-            "New" => {
-                println!("New file requested");
-                // TODO: Implement new file functionality
+            "new" => {
+                println!("Creating new document");
+                state.write().new_document();
             }
-            "Open..." => {
-                println!("Open file requested");
-                // TODO: Implement open file functionality
+            "open" => {
+                println!("Opening file dialog");
+                if let Some(file_path) = show_open_dialog() {
+                    match state.write().load_document(file_path.clone()) {
+                        Ok(()) => println!("Successfully opened: {:?}", file_path),
+                        Err(e) => eprintln!("Failed to open file: {}", e),
+                    }
+                }
             }
-            "Save" => {
-                println!("Save file requested");
-                // TODO: Implement save file functionality
+            "save" => {
+                println!("Saving document");
+                let can_save = state.read().current_file_path.is_some();
+                if can_save {
+                    match state.read().save_document() {
+                        Ok(()) => println!("Document saved successfully"),
+                        Err(e) => eprintln!("Failed to save file: {}", e),
+                    }
+                } else {
+                    // No current file path, show Save As dialog
+                    if let Some(file_path) = show_save_dialog() {
+                        match state.write().save_document_as(file_path.clone()) {
+                            Ok(()) => println!("Document saved as: {:?}", file_path),
+                            Err(e) => eprintln!("Failed to save file: {}", e),
+                        }
+                    }
+                }
             }
-            "Save As..." => {
-                println!("Save As file requested");
-                // TODO: Implement save as file functionality
+            "save_as" => {
+                println!("Showing Save As dialog");
+                if let Some(file_path) = show_save_dialog() {
+                    match state.write().save_document_as(file_path.clone()) {
+                        Ok(()) => println!("Document saved as: {:?}", file_path),
+                        Err(e) => eprintln!("Failed to save file: {}", e),
+                    }
+                }
             }
             _ => {}
         }
