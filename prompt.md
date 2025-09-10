@@ -266,6 +266,8 @@ The initial UI rendered by the component on the client must be identical to the 
 
 ## Methodology
 
+### Documentation
+
 Document each function or method using the style outlined in the Swift API guidelines (https://www.swift.org/documentation/api-design-guidelines/), preferring to capture everything in the summary if reasonable.  Describe results at the level of human semantics, without replicating the logic of the function, including any regular expressions it may use. Be as concise as possible but include all information necessary to determine if the implementation is correct.
 
 Use the names of parameters in documentation comments to save words, e.g. instead of
@@ -281,6 +283,10 @@ write:
     /// Saves the document as `p`.
     pub fn save_to_file<P: AsRef<Path>>(&self, p: P) -> anyhow::Result<()> {
 ```
+
+### Running the Web app
+
+When running `dx serve` for the web app, always specify `--port 8765`.
 
 ## Overall Goal
 

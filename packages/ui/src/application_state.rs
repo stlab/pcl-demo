@@ -16,11 +16,23 @@ impl ApplicationState {
 
     /// Returns the state of a newly-launched application
     pub fn new() -> Self {
-        // Read the application's one file from the standard location.
-        Self {
-            the_only_document: Document::new_from_file("image.json")
-                .expect("Failed to read document."),
-            current_file_path: Some(PathBuf::from("image.json")),
+        // On web, we can't read files from disk, so start with a default document
+        #[cfg(target_arch = "wasm32")]
+        {
+            Self {
+                the_only_document: Document::new(),
+                current_file_path: None,
+            }
+        }
+        
+        // On native platforms, read the application's one file from the standard location.
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            Self {
+                the_only_document: Document::new_from_file("image.json")
+                    .expect("Failed to read document."),
+                current_file_path: Some(PathBuf::from("image.json")),
+            }
         }
     }
 
