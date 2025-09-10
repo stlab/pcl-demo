@@ -24,10 +24,18 @@ fn main() {
 
 /// Creates the application menu bar with File menu
 fn create_menu_bar() -> Menu {
-    let menu = Menu::new();
-    
+    let menubar = Menu::new();
+
+    // On macOS, add an application menu to ensure File menu shows correctly
+    // On Windows/Linux, this is not needed and File menu can be first
+    #[cfg(target_os = "macos")]
+    {
+        let app_menu = Submenu::new("PCL-demo", true);
+        menubar.append(&app_menu).unwrap();
+    }
+
     // Create File submenu
-    let file_submenu = Submenu::new("File", true);
+    let file_menu = Submenu::new("File", true);
     
     // Add File menu items
     let new_item = MenuItem::new("New", true, None);
@@ -38,17 +46,17 @@ fn create_menu_bar() -> Menu {
     let quit_item = PredefinedMenuItem::quit(Some("Quit"));
     
     // Add items to File submenu
-    file_submenu.append(&new_item).unwrap();
-    file_submenu.append(&open_item).unwrap();
-    file_submenu.append(&save_item).unwrap();
-    file_submenu.append(&save_as_item).unwrap();
-    file_submenu.append(&separator).unwrap();
-    file_submenu.append(&quit_item).unwrap();
+    file_menu.append(&new_item).unwrap();
+    file_menu.append(&open_item).unwrap();
+    file_menu.append(&save_item).unwrap();
+    file_menu.append(&save_as_item).unwrap();
+    file_menu.append(&separator).unwrap();
+    file_menu.append(&quit_item).unwrap();
     
     // Add File submenu to main menu
-    menu.append(&file_submenu).unwrap();
+    menubar.append(&file_menu).unwrap();
     
-    menu
+    menubar
 }
 
 /// The top-level UI element.
