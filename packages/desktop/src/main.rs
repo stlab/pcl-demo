@@ -64,6 +64,11 @@ fn nonstandard_menu_key(key: Code, modifiers: Modifiers) -> Option<Accelerator> 
     Some(Accelerator::new(Some(modifiers), key))
 }
 
+/// Appends to `items` an enabled item with the given `id`, `text`, and `accelerator`.
+fn append_item(items: &Submenu, id: &str, text: &str, accelerator: Option<Accelerator>) {
+    items.append(&MenuItem::with_id(MenuId::new(id), text, true, accelerator)).unwrap();
+}
+
 /// Creates the application menu bar with File menu
 fn create_menu_bar() -> Menu {
     let menu_bar = Menu::new();
@@ -80,20 +85,12 @@ fn create_menu_bar() -> Menu {
     let file_menu = Submenu::new("File", true);
     
     // Add File menu items with explicit IDs
-    let new_item = MenuItem::with_id(MenuId::new("new"), "New", true, menu_key(Code::KeyN));
-    let open_item = MenuItem::with_id(MenuId::new("open"), "Open...", true, menu_key(Code::KeyO));
-    let save_item = MenuItem::with_id(MenuId::new("save"), "Save", true, menu_key(Code::KeyS));
-    let save_as_item = MenuItem::with_id(MenuId::new("save_as"), "Save As...", true, nonstandard_menu_key(Code::KeyS, BASE_MODIFIER | Modifiers::SHIFT));
-    let separator = PredefinedMenuItem::separator();
-    let quit_item = PredefinedMenuItem::quit(Some("Quit"));
-    
-    // Add items to File submenu
-    file_menu.append(&new_item).unwrap();
-    file_menu.append(&open_item).unwrap();
-    file_menu.append(&save_item).unwrap();
-    file_menu.append(&save_as_item).unwrap();
-    file_menu.append(&separator).unwrap();
-    file_menu.append(&quit_item).unwrap();
+    append_item(&file_menu, "new", "New", menu_key(Code::KeyN));
+    append_item(&file_menu, "open", "Open", menu_key(Code::KeyO));
+    append_item(&file_menu, "save", "Save", menu_key(Code::KeyS));
+    append_item(&file_menu, "save_as", "Save As...", nonstandard_menu_key(Code::KeyS, BASE_MODIFIER | Modifiers::SHIFT));
+    file_menu.append(&PredefinedMenuItem::separator()).unwrap();
+    file_menu.append(&PredefinedMenuItem::quit(Some("Quit"))).unwrap();
     
     // Add File submenu to main menu
     menu_bar.append(&file_menu).unwrap();
