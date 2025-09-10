@@ -14,8 +14,16 @@ pub struct Document {
 impl Document {
 
     /// Returns the in-memory representation of the pcl-demo document at `p`.
-    pub fn new_from_file<P: AsRef<Path>>(p: P) -> Result<Self> {
-        let r = serde_json::from_reader(File::open(p)?)?;
+    pub fn new_from_file<P: AsRef<Path>>(p: P) -> anyhow::Result<Self> {
+        let p: &Path = p.as_ref();
+
+        let f = File::open(p)
+            .context(format!("Failed to open: {:?}", p))?;
+
+        let r = serde_json::from_reader(f)
+            .context(format!("Invalid json: {:?}", p))?;
+
+        // Can't just return r because it has the wrong error type.
         Ok(r)
     }
 
