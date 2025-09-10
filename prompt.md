@@ -263,3 +263,16 @@ The initial UI rendered by the component on the client must be identical to the 
 
 * Use the `use_server_future` hook instead of `use_resource`. It runs the future on the server, serializes the result, and sends it to the client, ensuring the client has the data immediately for its first render.
 * Any code that relies on browser-specific APIs (like accessing `localStorage`) must be run *after* hydration. Place this code inside a `use_effect` hook.
+
+## Methodology
+
+Document each function or method using the style outlined in the Swift API guidelines (https://www.swift.org/documentation/api-design-guidelines/), preferring to capture everything in the summary if reasonable.  Describe results at the level of human semantics, without replicating the logic of the function, including any regular expressions it may use. Be as concise as possible but include all information necessary to determine if the implementation is correct.
+
+## Overall Goal
+
+You are developing a demo application for Project Code Less, whose
+mission is to show that applications can be built with two orders of
+magnitude less code by using more declarative forms and
+domain-specific languages.
+
+Our demo is going to be a vector graphic editor akin to Adobe Illustrator.
