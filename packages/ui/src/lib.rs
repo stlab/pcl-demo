@@ -8,6 +8,11 @@ mod file_menu;
 #[cfg(target_arch = "wasm32")]
 pub use file_menu::FileMenu;
 
+#[cfg(feature = "mobile")]
+mod mobile_file_menu;
+#[cfg(feature = "mobile")]
+pub use mobile_file_menu::MobileFileMenu;
+
 mod application_state;
 pub use application_state::*;
 

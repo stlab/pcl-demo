@@ -4,6 +4,9 @@ use crate::application_state::*;
 #[cfg(target_arch = "wasm32")]
 use crate::file_menu::FileMenu;
 
+#[cfg(feature = "mobile")]
+use crate::mobile_file_menu::MobileFileMenu;
+
 const DOCUMENT_CSS: Asset = asset!("/assets/styling/document.css");
 
 /// Helper function to conditionally render the file menu
@@ -14,7 +17,14 @@ fn render_file_menu(application_state: Signal<ApplicationState>) -> Element {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "mobile")]
+fn render_file_menu(application_state: Signal<ApplicationState>) -> Element {
+    rsx! {
+        MobileFileMenu { application_state }
+    }
+}
+
+#[cfg(not(any(target_arch = "wasm32", feature = "mobile")))]
 fn render_file_menu(_application_state: Signal<ApplicationState>) -> Element {
     rsx! {}
 }
@@ -29,7 +39,7 @@ pub fn DocumentUI(application_state: Signal<ApplicationState>) -> Element {
     rsx! {
         document::Link { rel: "stylesheet", href: DOCUMENT_CSS }
         
-        // Only show file menu on web platform
+        // Show appropriate file menu for each platform
         {render_file_menu(application_state)}
         
         div {

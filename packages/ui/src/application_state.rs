@@ -16,8 +16,8 @@ impl ApplicationState {
 
     /// Returns the state of a newly-launched application
     pub fn new() -> Self {
-        // On web, we can't read files from disk, so start with a default document
-        #[cfg(target_arch = "wasm32")]
+        // On web and mobile, we can't read files from disk, so start with a default document
+        #[cfg(any(target_arch = "wasm32", feature = "mobile"))]
         {
             Self {
                 the_only_document: Document::new(),
@@ -25,8 +25,8 @@ impl ApplicationState {
             }
         }
         
-        // On native platforms, read the application's one file from the standard location.
-        #[cfg(not(target_arch = "wasm32"))]
+        // On desktop platforms, read the application's one file from the standard location.
+        #[cfg(not(any(target_arch = "wasm32", feature = "mobile")))]
         {
             Self {
                 the_only_document: Document::new_from_file("image.json")

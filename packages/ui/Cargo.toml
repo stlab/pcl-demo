@@ -3,6 +3,9 @@ name = "ui"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+mobile = []
+
 [dependencies]
 anyhow = "1.0.99"
 dioxus = { workspace = true }
