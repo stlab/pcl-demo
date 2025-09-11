@@ -18,3 +18,7 @@ pub use application_state::*;
 
 mod document;
 pub use document::*;
+
+mod shapes;
+mod shapes_doc;
+mod shapes_ui;

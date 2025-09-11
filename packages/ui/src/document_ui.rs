@@ -14,6 +14,7 @@ const DOCUMENT_CSS: Asset = asset!("/assets/styling/document.css");
 fn render_file_menu(application_state: Signal<ApplicationState>) -> Element {
     rsx! {
         FileMenu { application_state }
+        crate::shapes_ui::SvgCanvasDiv { }
     }
 }
 
