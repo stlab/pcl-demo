@@ -16,14 +16,9 @@ From the top-level directory,
 dx serve --package <package-name>
 ```
 
-Currently, `desktop` and `mobile` packages work. Page served by the `web` package is blank white; contains no SVG.
+Where `package-name` is `desktop`, `web`, or `mobile`. If you want to run the mobile app in the iOS simulator on macOS, it's `dx serve --package mobile --platform ios`.
 
-The following will not work due to inability to find "image.svg" in the current directory.
-
-```bash
-cd packages/<package-name>
-dx serve
-```
+When running the `desktop` package, you can find some sample documents to open in the `mobile_documents/` directory at the top of this repository.
 
 # Development
 
