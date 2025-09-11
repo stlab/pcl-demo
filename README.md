@@ -1,24 +1,55 @@
 # Set up
 
-This project requires dioxus version = "0.7.0-alpha.3".  To get it:
+This project requires dioxus version = "0.7.0-rc.0" and additional Rust targets for cross-platform development.
 
-```
-curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash\n\n
+## Install Dioxus CLI
+
+```bash
+curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
 cargo binstall dioxus-cli@0.7.0-rc.0 --force
 ```
 
+## Install Required Rust Targets
+
+For iOS development (required for `dx serve --package mobile --platform ios`):
+
+```bash
+rustup target add aarch64-apple-ios-sim    # iOS Simulator (Apple Silicon)
+rustup target add aarch64-apple-ios        # iOS Device (Apple Silicon)
+```
+
+For Android development (if needed in the future):
+
+```bash
+rustup target add aarch64-linux-android    # Android ARM64
+rustup target add armv7-linux-androideabi  # Android ARM32
+```
+
+## Platform Requirements
+
+- **macOS**: Required for iOS development and simulator
+- **Web**: Works on all platforms, no additional requirements
+- **Desktop**: Works on all platforms (Windows, macOS, Linux)
+
 # Running the app
 
+From the top-level directory:
 
-From the top-level directory,
-
-```
+```bash
 dx serve --package <package-name>
 ```
 
-Where `package-name` is `desktop`, `web`, or `mobile`. If you want to run the mobile app in the iOS simulator on macOS, it's `dx serve --package mobile --platform ios`.
+The `mobile` package also lets you specify a platform:
+```bash
+# Run on desktop for testing (default)
+dx serve --package mobile --platform desktop
 
-When running the `desktop` package, you can find some sample documents to open in the `mobile_documents/` directory at the top of this repository.
+# Run in iOS Simulator (macOS only)
+dx serve --package mobile --platform ios
+```
+
+You can find sample documents to open in `mobile_documents/` at the
+root of this repository.
 
 # Development
 
@@ -28,6 +59,10 @@ This workspace contains a member crate for each of the web, desktop and mobile p
 your_project/
 ├─ README.md
 ├─ Cargo.toml
+├─ mobile_documents/        # Mobile app persistent storage directory
+│  ├─ sample_circle.json    # Sample documents
+│  ├─ sample_square.json
+│  └─ *.json               # User-saved documents
 └─ packages/
    ├─ web/
    │  └─ ... # Web specific UI/logic
@@ -36,7 +71,13 @@ your_project/
    ├─ mobile/
    │  └─ ... # Mobile specific UI/logic
    └─  ui/
-      └─ ... # Component shared between multiple platforms
+      ├─ src/
+      │  ├─ file_menu.rs           # Web file menu component
+      │  ├─ mobile_file_menu.rs    # Mobile file menu component
+      │  └─ ... # Other shared components
+      └─ assets/styling/
+         ├─ file_menu.css          # Web file menu styles
+         └─ mobile_file_menu.css   # Mobile file menu styles
 ```
 
 ## Platform crates
