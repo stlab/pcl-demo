@@ -7,8 +7,6 @@ const USE_MESSAGE_BOX: bool = false;
 
 const SHAPES_UI_CSS: Asset = asset!("/assets/styling/shapes_ui.css");
 
-static DOC: GlobalSignal<Document> = Global::new(|| Document::default());
-
 enum TrackerNext {
     Continue,
     Done,
@@ -49,48 +47,41 @@ static APP_STATE: GlobalSignal<AppState> = Global::new(|| AppState::default());
 
 #[component]
 pub fn SvgCanvasDiv() -> Element {
-    let opt_tracker = &*CANVAS_TRACKER.read();
-    match opt_tracker {
-        Some(tracker) => {
-            let mouse_move_tracker = tracker.clone();
-            let mouse_up_tracker = tracker.clone();
-            rsx! {
-                div {
-                    id: "svg_canvas_div",
-                    onmousemove: move |evt| {
-                        evt.stop_propagation();
-                        evt.prevent_default();
-                        match mouse_move_tracker.track_mouse_move(&evt) {
-                            TrackerNext::Continue => {},
-                            TrackerNext::Done => { *CANVAS_TRACKER.write() = None; }
-                        };
-                    },
-                    onmouseup: move |evt| {
-                        evt.stop_propagation();
-                        evt.prevent_default();
-                        mouse_up_tracker.track_mouse_up(&evt);
-                        *CANVAS_TRACKER.write() = None;
-                    },
-                    SvgCanvas{}
+    let opt_mouse_move_tracker = CANVAS_TRACKER();
+    let opt_mouse_up_tracker = opt_mouse_move_tracker.clone();
+
+    let mouse_move_handler = move |evt: MouseEvent| {
+        if let Some(tracker) = &opt_mouse_move_tracker {
+            evt.stop_propagation();
+            evt.prevent_default();
+            match tracker.track_mouse_move(&evt) {
+                TrackerNext::Continue => {}
+                TrackerNext::Done => {
+                    *CANVAS_TRACKER.write() = None;
                 }
+            };
+        }
+    };
+
+    let mouse_up_handler = move |evt: MouseEvent| {
+        if let Some(tracker) = &opt_mouse_up_tracker {
+            evt.stop_propagation();
+            evt.prevent_default();
+            tracker.track_mouse_up(&evt);
+            *CANVAS_TRACKER.write() = None;
+        }
+    };
+
+    rsx! {
+        div {
+            id: "svg_canvas_div",
+            onmousemove: mouse_move_handler,
+            onmouseup: mouse_up_handler,
+            SvgCanvas{}
+            if USE_MESSAGE_BOX {
+                MessageBox{}
             }
         }
-        None => rsx! {
-            div {
-                id: "svg_canvas_div",
-                onmousemove: move |evt| {
-                    let coords = evt.page_coordinates();
-                    let x = coords.x;
-                    let y = coords.y;
-                    *MESSAGE_BOX.write() = format!("Mouse: {}, {}", x, y );
-                },
-                document::Link { rel: "stylesheet", href: SHAPES_UI_CSS }
-                SvgCanvas{}
-                if USE_MESSAGE_BOX {
-                    MessageBox{}
-                }
-            }
-        },
     }
 }
 
@@ -134,6 +125,8 @@ fn SvgCanvas() -> Element {
         }
     }
 }
+
+static DOC: GlobalSignal<Document> = Global::new(|| Document::default());
 
 fn to_min_span(x1: f64, x2: f64) -> (f64, f64) {
     if x1 < x2 {
