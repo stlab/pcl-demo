@@ -1,5 +1,6 @@
 use crate::document::*;
 use std::path::PathBuf;
+use anyhow::bail;
 
 /// The state of the entire application.
 pub struct ApplicationState {

@@ -1,9 +1,6 @@
-use std::*;
-use std::fs::*;
-use anyhow::*;
-use std::path::*;
-use serde::*;
-use serde_json;
+use std::{fs::File, path::Path};
+use anyhow::Context;
+use serde::{Deserialize, Serialize};
 
 /// In-memory representation of a pcl-demo document.
 #[derive(Serialize, Deserialize, Debug)]

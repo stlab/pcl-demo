@@ -149,7 +149,7 @@ fn AppUI() -> Element {
                     }
                 }
             }
-            _ => { unreachable!("unknown menu item {id.as_ref():?}") }
+            _ => { unreachable!("unknown menu item {:?}", id.as_ref()) }
         }
     });
 
