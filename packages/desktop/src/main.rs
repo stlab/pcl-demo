@@ -33,7 +33,6 @@ fn show_save_dialog() -> Option<PathBuf> {
 
 /// Runs the application.
 fn main() {
-    // Create the main menu bar
     let menu_bar = create_menu_bar();
 
     // Nonstandard startup so the application window doesn't float on
@@ -118,7 +117,7 @@ fn AppUI() -> Element {
                 println!("Opening file dialog");
                 if let Some(file_path) = show_open_dialog() {
                     match state.write().load_document(file_path.clone()) {
-                        Ok(()) => println!("Successfully opened: {:?}", file_path),
+                        Ok(()) => println!("Successfully opened: {file_path:?}"),
                         Err(e) => eprintln!("Failed to open file: {}", e),
                     }
                 }
@@ -150,7 +149,7 @@ fn AppUI() -> Element {
                     }
                 }
             }
-            _ => {}
+            _ => { unreachable!("unknown menu item {id.as_ref():?}") }
         }
     });
 

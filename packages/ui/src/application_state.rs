@@ -7,7 +7,7 @@ pub struct ApplicationState {
     /// The one document that every application has open.
     pub the_only_document: Document,
 
-    /// Where the document will be saved (None for new unsaved documents).
+    /// Where the document will be saved (`None` for new unsaved documents).
     pub current_file_path: Option<PathBuf>,
 
 }
@@ -41,7 +41,7 @@ impl ApplicationState {
         if let Some(path) = &self.current_file_path {
             self.the_only_document.save_to_file(path)
         } else {
-            Err(anyhow::anyhow!("No file path set - use Save As instead"))
+            bail!("No file path set - use Save As instead");
         }
     }
 
