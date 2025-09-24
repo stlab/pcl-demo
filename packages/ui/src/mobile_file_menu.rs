@@ -1,6 +1,10 @@
 use dioxus::prelude::*;
 use crate::application_state::*;
 
+// Mobile-specific imports
+use std::path::PathBuf;
+use std::fs;
+
 const MOBILE_FILE_MENU_CSS: Asset = asset!("/assets/styling/mobile_file_menu.css");
 
 /// Mobile file menu component with touch-optimized UI and real file operations
@@ -403,9 +407,6 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
 }
 
 // Mobile-specific file operations using persistent storage
-
-use std::path::PathBuf;
-use std::fs;
 
 
 /// Gets the storage directory for mobile app documents

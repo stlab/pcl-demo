@@ -1,6 +1,16 @@
 use dioxus::prelude::*;
 use crate::application_state::*;
 
+// Web-specific imports
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::prelude::*;
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::JsCast;
+#[cfg(target_arch = "wasm32")]
+use web_sys::{window, Blob, Url, HtmlAnchorElement};
+#[cfg(target_arch = "wasm32")]
+use std::rc::Rc;
+
 
 
 const FILE_MENU_CSS: Asset = asset!("/assets/styling/file_menu.css");
@@ -84,7 +94,6 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
                         onmounted: move |element| {
                             #[cfg(target_arch = "wasm32")]
                             {
-                                use wasm_bindgen::JsCast;
                                 if let Some(web_element) = element.downcast::<web_sys::Element>() {
                                     if let Ok(input) = web_element.clone().dyn_into::<web_sys::HtmlInputElement>() {
                                         *file_input_ref.write() = Some(input);
@@ -95,8 +104,6 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
                         onchange: move |_event| {
                             #[cfg(target_arch = "wasm32")]
                             {
-                                use wasm_bindgen::JsCast;
-                                
                                 if let Some(input) = file_input_ref.read().as_ref() {
                                     if let Some(files) = input.files() {
                                         if files.length() > 0 {
@@ -107,7 +114,6 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
                                                 let mut state_clone = state.clone();
                                                 
                                                 // Use Rc to share the file_reader between the closure and the setup
-                                                use std::rc::Rc;
                                                 let file_reader_rc = Rc::new(file_reader);
                                                 let file_reader_for_closure = file_reader_rc.clone();
                                                 
@@ -174,10 +180,6 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
 /// Downloads a file with the given content and filename
 #[cfg(target_arch = "wasm32")]
 fn download_file(content: &str, filename: &str) {
-    use wasm_bindgen::prelude::*;
-    use wasm_bindgen::JsCast;
-    use web_sys::{window, Blob, Url, HtmlAnchorElement};
-    
     let window = window().unwrap();
     let document = window.document().unwrap();
     

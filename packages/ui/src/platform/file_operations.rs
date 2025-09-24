@@ -5,6 +5,18 @@
 
 use std::path::PathBuf;
 
+// Web-specific imports
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::prelude::*;
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::JsCast;
+#[cfg(target_arch = "wasm32")]
+use web_sys::{window, Blob, Url, HtmlAnchorElement};
+
+// Mobile-specific imports
+#[cfg(feature = "mobile")]
+use std::fs;
+
 /// Result type for file operations
 pub type FileOperationResult<T> = anyhow::Result<T>;
 
@@ -256,10 +268,6 @@ pub fn get_file_operations() -> PlatformFileOperations {
 
 #[cfg(target_arch = "wasm32")]
 fn download_file(content: &str, filename: &str) {
-    use wasm_bindgen::prelude::*;
-    use wasm_bindgen::JsCast;
-    use web_sys::{window, Blob, Url, HtmlAnchorElement};
-    
     let window = window().unwrap();
     let document = window.document().unwrap();
     
@@ -298,7 +306,6 @@ fn download_file(_content: &str, _filename: &str) {
 
 #[cfg(feature = "mobile")]
 fn save_document_to_storage(content: &str, filename: &str) -> FileOperationResult<()> {
-    use std::fs;
     let storage_dir = get_storage_directory();
     let file_path = storage_dir.join(filename);
     
@@ -326,7 +333,6 @@ fn save_document_to_storage(_content: &str, _filename: &str) -> FileOperationRes
 
 #[cfg(feature = "mobile")]
 fn load_document_from_storage(filename: &str) -> Option<String> {
-    use std::fs;
     let storage_dir = get_storage_directory();
     let file_path = storage_dir.join(filename);
     
@@ -349,7 +355,6 @@ fn load_document_from_storage(_filename: &str) -> Option<String> {
 
 #[cfg(feature = "mobile")]
 fn delete_document_from_storage(filename: &str) -> bool {
-    use std::fs;
     let storage_dir = get_storage_directory();
     let file_path = storage_dir.join(filename);
     
@@ -372,7 +377,6 @@ fn delete_document_from_storage(_filename: &str) -> bool {
 
 #[cfg(feature = "mobile")]
 fn get_saved_files() -> Vec<String> {
-    use std::fs;
     let storage_dir = get_storage_directory();
     println!("Mobile: Looking for files in {:?}", storage_dir);
     
@@ -435,7 +439,6 @@ fn get_saved_files() -> Vec<String> {
 
 #[cfg(feature = "mobile")]
 fn get_file_size_impl(filename: &str) -> usize {
-    use std::fs;
     let storage_dir = get_storage_directory();
     let file_path = storage_dir.join(filename);
     
@@ -452,8 +455,6 @@ fn get_file_size_impl(_filename: &str) -> usize {
 
 #[cfg(feature = "mobile")]
 fn get_storage_directory() -> PathBuf {
-    use std::path::PathBuf;
-    use std::fs;
     
     #[cfg(target_os = "ios")]
     {
