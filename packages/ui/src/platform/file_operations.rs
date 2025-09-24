@@ -93,28 +93,48 @@ pub struct MobileFileOperations;
 
 impl FileOperations for MobileFileOperations {
     fn save_document(&self, content: &str, filename: &str) -> FileOperationResult<()> {
-        save_document_to_storage(content, filename)
+        if cfg!(feature = "mobile") {
+            save_document_to_storage(content, filename)
+        } else {
+            Err(anyhow::anyhow!("Mobile storage not available - mobile feature not enabled"))
+        }
     }
     
     fn load_document(&self, filename: &str) -> FileOperationResult<String> {
-        load_document_from_storage(filename)
-            .ok_or_else(|| anyhow::anyhow!("Failed to load document: {}", filename))
+        if cfg!(feature = "mobile") {
+            load_document_from_storage(filename)
+                .ok_or_else(|| anyhow::anyhow!("Failed to load document: {}", filename))
+        } else {
+            Err(anyhow::anyhow!("Mobile storage not available - mobile feature not enabled"))
+        }
     }
     
     fn delete_document(&self, filename: &str) -> FileOperationResult<()> {
-        if delete_document_from_storage(filename) {
-            Ok(())
+        if cfg!(feature = "mobile") {
+            if delete_document_from_storage(filename) {
+                Ok(())
+            } else {
+                Err(anyhow::anyhow!("Failed to delete document: {}", filename))
+            }
         } else {
-            Err(anyhow::anyhow!("Failed to delete document: {}", filename))
+            Err(anyhow::anyhow!("Mobile storage not available - mobile feature not enabled"))
         }
     }
     
     fn get_saved_documents(&self) -> FileOperationResult<Vec<String>> {
-        Ok(get_saved_files())
+        if cfg!(feature = "mobile") {
+            Ok(get_saved_files())
+        } else {
+            Ok(vec![]) // Return empty list when mobile feature not enabled
+        }
     }
     
     fn get_file_size(&self, filename: &str) -> usize {
-        get_file_size_impl(filename)
+        if cfg!(feature = "mobile") {
+            get_file_size_impl(filename)
+        } else {
+            0
+        }
     }
     
     fn show_open_dialog(&self) -> Option<PathBuf> {
@@ -128,7 +148,11 @@ impl FileOperations for MobileFileOperations {
     }
     
     fn share_document(&self, content: &str) {
-        share_document_mobile(content);
+        if cfg!(feature = "mobile") {
+            share_document_mobile(content);
+        } else {
+            println!("Share not available - mobile feature not enabled ({} chars)", content.len());
+        }
     }
 }
 
@@ -294,7 +318,7 @@ fn download_file(content: &str, filename: &str) {
     Url::revoke_object_url(&url).unwrap();
 }
 
-fn save_document_to_storage(content: &str, filename: &str) -> FileOperationResult<()> {
+pub fn save_document_to_storage(content: &str, filename: &str) -> FileOperationResult<()> {
     let storage_dir = get_storage_directory();
     let file_path = storage_dir.join(filename);
     
@@ -315,7 +339,7 @@ fn save_document_to_storage(content: &str, filename: &str) -> FileOperationResul
     Ok(())
 }
 
-fn load_document_from_storage(filename: &str) -> Option<String> {
+pub fn load_document_from_storage(filename: &str) -> Option<String> {
     let storage_dir = get_storage_directory();
     let file_path = storage_dir.join(filename);
     
@@ -331,7 +355,7 @@ fn load_document_from_storage(filename: &str) -> Option<String> {
     }
 }
 
-fn delete_document_from_storage(filename: &str) -> bool {
+pub fn delete_document_from_storage(filename: &str) -> bool {
     let storage_dir = get_storage_directory();
     let file_path = storage_dir.join(filename);
     
@@ -347,7 +371,7 @@ fn delete_document_from_storage(filename: &str) -> bool {
     }
 }
 
-fn get_saved_files() -> Vec<String> {
+pub fn get_saved_files() -> Vec<String> {
     let storage_dir = get_storage_directory();
     println!("Storage: Looking for files in {:?}", storage_dir);
     
@@ -405,7 +429,7 @@ fn get_saved_files() -> Vec<String> {
     files
 }
 
-fn get_file_size_impl(filename: &str) -> usize {
+pub fn get_file_size_impl(filename: &str) -> usize {
     let storage_dir = get_storage_directory();
     let file_path = storage_dir.join(filename);
     
@@ -415,7 +439,7 @@ fn get_file_size_impl(filename: &str) -> usize {
     }
 }
 
-fn get_storage_directory() -> PathBuf {
+pub fn get_storage_directory() -> PathBuf {
     if cfg!(target_os = "ios") {
         // On iOS, try to use the app's Documents directory
         let storage_dir = if let Some(home) = std::env::var_os("HOME") {
@@ -481,7 +505,7 @@ fn get_storage_directory() -> PathBuf {
     }
 }
 
-fn initialize_sample_files() {
+pub fn initialize_sample_files() {
     let sample_circle = r#"{
   "html": "<svg viewBox=\"0 0 70 70\" xmlns=\"http://www.w3.org/2000/svg\">\n<circle cx=\"35\" cy=\"35\" r=\"25\" fill=\"lightblue\" stroke=\"darkblue\" stroke-width=\"2\"/>\n<text x=\"35\" y=\"40\" text-anchor=\"middle\" font-size=\"8\">Circle Doc</text>\n</svg>"
 }"#;
@@ -497,7 +521,7 @@ fn initialize_sample_files() {
     println!("Mobile: Initialized sample files for first run");
 }
 
-fn share_document_mobile(content: &str) {
+pub fn share_document_mobile(content: &str) {
     if cfg!(target_os = "android") {
         println!("Android: Opening share sheet");
     } else if cfg!(target_os = "ios") {

@@ -10,18 +10,13 @@ pub use platform::{
     FileOperations, 
     FileOperationResult,
     PlatformFileOperations,
-    PlatformFileMenu,
     WebFileOperations,
     MobileFileOperations,
     DesktopFileOperations
 };
 
-// Platform-specific modules are still needed for their implementations
-// but are no longer exported directly - access through platform abstraction
-#[cfg(target_arch = "wasm32")]
+// Platform-specific modules - now available on all platforms for better rust-analyzer support
 mod file_menu;
-
-#[cfg(feature = "mobile")]
 mod mobile_file_menu;
 
 mod application_state;

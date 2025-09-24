@@ -1,5 +1,6 @@
 use dioxus::prelude::*;
 use crate::application_state::*;
+use crate::platform::{save_document_to_storage, load_document_from_storage, delete_document_from_storage, get_saved_files, get_file_size_impl, initialize_sample_files, share_document_mobile};
 
 // Mobile-specific imports
 use std::path::PathBuf;
@@ -41,7 +42,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                 .and_then(|n| n.to_str())
                 .unwrap_or("document.json");
             
-            if save_document_to_storage(&json_content, filename) {
+            if let Ok(_) = save_document_to_storage(&json_content, filename) {
                 saved_files.set(get_saved_files()); // Refresh file list
                 println!("Mobile: Saved {}", filename);
             }
@@ -114,7 +115,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                     format!("{}.json", filename)
                 };
                 
-                if save_document_to_storage(&json_content, &filename) {
+                if let Ok(_) = save_document_to_storage(&json_content, &filename) {
                     {
                         let mut app_state = state.write();
                         app_state.current_file_path = Some(std::path::PathBuf::from(&filename));
@@ -295,7 +296,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                                         div {
                                             class: "file-item-info",
                                             div { class: "file-item-name", "{filename}" }
-                                            div { class: "file-item-size", "{get_file_size(filename)} bytes" }
+                                            div { class: "file-item-size", "{get_file_size_impl(filename)} bytes" }
                                         }
                                     }
                                     button {
@@ -370,7 +371,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                                                     format!("{}.json", filename)
                                                 };
                                                 
-                                                if save_document_to_storage(&json_content, &filename) {
+                                                if let Ok(_) = save_document_to_storage(&json_content, &filename) {
                                                     {
                                                         let mut app_state = state.write();
                                                         app_state.current_file_path = Some(std::path::PathBuf::from(&filename));
@@ -404,245 +405,4 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
             }
         }
     }
-}
-
-// Mobile-specific file operations using persistent storage
-
-
-/// Gets the storage directory for mobile app documents
-fn get_storage_directory() -> PathBuf {
-    #[cfg(target_os = "ios")]
-    {
-        // On iOS, try to use the app's Documents directory
-        // First try getting the home directory, then fall back to temp
-        let storage_dir = if let Some(home) = std::env::var_os("HOME") {
-            let mut dir = PathBuf::from(home);
-            dir.push("Documents");
-            dir.push("mobile_documents");
-            dir
-        } else {
-            // Fallback to temp directory
-            let mut dir = std::env::temp_dir();
-            dir.push("mobile_documents");
-            dir
-        };
-        
-        // Try to create the directory
-        match fs::create_dir_all(&storage_dir) {
-            Ok(_) => {
-                println!("iOS: Created storage directory at {:?}", storage_dir);
-                storage_dir
-            }
-            Err(e) => {
-                println!("iOS: Failed to create storage directory {:?}: {}", storage_dir, e);
-                // Fallback to temp directory
-                let temp_dir = std::env::temp_dir();
-                println!("iOS: Using temp directory: {:?}", temp_dir);
-                temp_dir
-            }
-        }
-    }
-    
-    #[cfg(target_os = "android")]
-    {
-        // On Android, try to use internal storage
-        let storage_dir = if let Ok(current) = std::env::current_dir() {
-            let mut dir = current;
-            dir.push("mobile_documents");
-            dir
-        } else {
-            let mut dir = std::env::temp_dir();
-            dir.push("mobile_documents");
-            dir
-        };
-        
-        match fs::create_dir_all(&storage_dir) {
-            Ok(_) => {
-                println!("Android: Created storage directory at {:?}", storage_dir);
-                storage_dir
-            }
-            Err(e) => {
-                println!("Android: Failed to create storage directory {:?}: {}", storage_dir, e);
-                std::env::temp_dir()
-            }
-        }
-    }
-    
-    #[cfg(not(any(target_os = "ios", target_os = "android")))]
-    {
-        // Desktop/other platforms
-        let mut storage_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-        storage_dir.push("mobile_documents");
-        
-        match fs::create_dir_all(&storage_dir) {
-            Ok(_) => {
-                println!("Desktop: Created storage directory at {:?}", storage_dir);
-                storage_dir
-            }
-            Err(e) => {
-                println!("Desktop: Failed to create storage directory {:?}: {}", storage_dir, e);
-                std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
-            }
-        }
-    }
-}
-
-/// Gets the list of saved files from storage
-fn get_saved_files() -> Vec<String> {
-    let storage_dir = get_storage_directory();
-    println!("Mobile: Looking for files in {:?}", storage_dir);
-    
-    // Read all .json files from the storage directory
-    let mut files = Vec::new();
-    
-    match fs::read_dir(&storage_dir) {
-        Ok(entries) => {
-            println!("Mobile: Successfully opened directory, reading entries...");
-            for entry in entries {
-                if let Ok(entry) = entry {
-                    let path = entry.path();
-                    if let Some(filename) = path.file_name() {
-                        if let Some(filename_str) = filename.to_str() {
-                            if filename_str.ends_with(".json") {
-                                println!("Mobile: Found file: {}", filename_str);
-                                files.push(filename_str.to_string());
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        Err(e) => {
-            println!("Mobile: Failed to read directory {:?}: {}", storage_dir, e);
-        }
-    }
-    
-    // Add sample files if directory is empty (first run)
-    if files.is_empty() {
-        println!("Mobile: No files found, initializing sample files...");
-        initialize_sample_files();
-        // Re-read after initialization
-        match fs::read_dir(&storage_dir) {
-            Ok(entries) => {
-                for entry in entries {
-                    if let Ok(entry) = entry {
-                        let path = entry.path();
-                        if let Some(filename) = path.file_name() {
-                            if let Some(filename_str) = filename.to_str() {
-                                if filename_str.ends_with(".json") {
-                                    println!("Mobile: Found file after init: {}", filename_str);
-                                    files.push(filename_str.to_string());
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            Err(e) => {
-                println!("Mobile: Failed to re-read directory after init: {}", e);
-            }
-        }
-    }
-    
-    files.sort(); // Sort alphabetically
-    println!("Mobile: Returning {} files: {:?}", files.len(), files);
-    files
-}
-
-/// Saves a document to mobile storage
-fn save_document_to_storage(content: &str, filename: &str) -> bool {
-    let storage_dir = get_storage_directory();
-    let file_path = storage_dir.join(filename);
-    
-    println!("Mobile: Attempting to save {} to {:?}", filename, file_path);
-    println!("Mobile: Content length: {} bytes", content.len());
-    
-    match fs::write(&file_path, content) {
-        Ok(_) => {
-            println!("Mobile: Successfully saved {} to {:?}", filename, file_path);
-            
-            // Verify the file was actually written
-            match fs::metadata(&file_path) {
-                Ok(metadata) => {
-                    println!("Mobile: File size on disk: {} bytes", metadata.len());
-                }
-                Err(e) => {
-                    println!("Mobile: Warning: Could not read metadata for saved file: {}", e);
-                }
-            }
-            
-            true
-        }
-        Err(e) => {
-            println!("Mobile: Failed to save {} to {:?}: {}", filename, file_path, e);
-            false
-        }
-    }
-}
-
-/// Loads a document from mobile storage
-fn load_document_from_storage(filename: &str) -> Option<String> {
-    let storage_dir = get_storage_directory();
-    let file_path = storage_dir.join(filename);
-    
-    match fs::read_to_string(&file_path) {
-        Ok(content) => {
-            println!("Mobile: Loaded {} from {:?}", filename, file_path);
-            Some(content)
-        }
-        Err(e) => {
-            println!("Mobile: Failed to load {}: {}", filename, e);
-            None
-        }
-    }
-}
-
-/// Deletes a document from mobile storage
-fn delete_document_from_storage(filename: &str) -> bool {
-    let storage_dir = get_storage_directory();
-    let file_path = storage_dir.join(filename);
-    
-    match fs::remove_file(&file_path) {
-        Ok(_) => {
-            println!("Mobile: Deleted {} from {:?}", filename, file_path);
-            true
-        }
-        Err(e) => {
-            println!("Mobile: Failed to delete {}: {}", filename, e);
-            false
-        }
-    }
-}
-
-/// Gets the file size in bytes
-fn get_file_size(filename: &str) -> usize {
-    let storage_dir = get_storage_directory();
-    let file_path = storage_dir.join(filename);
-    
-    match fs::metadata(&file_path) {
-        Ok(metadata) => metadata.len() as usize,
-        Err(_) => 0,
-    }
-}
-
-/// Initializes sample files for first-time users
-fn initialize_sample_files() {
-    let sample_circle = r#"{
-  "html": "<svg viewBox=\"0 0 70 70\" xmlns=\"http://www.w3.org/2000/svg\">\n<circle cx=\"35\" cy=\"35\" r=\"25\" fill=\"lightblue\" stroke=\"darkblue\" stroke-width=\"2\"/>\n<text x=\"35\" y=\"40\" text-anchor=\"middle\" font-size=\"8\">Circle Doc</text>\n</svg>"
-}"#;
-    
-    let sample_square = r#"{
-  "html": "<svg viewBox=\"0 0 70 70\" xmlns=\"http://www.w3.org/2000/svg\">\n<rect x=\"15\" y=\"15\" width=\"40\" height=\"40\" fill=\"lightcoral\" stroke=\"darkred\" stroke-width=\"2\"/>\n<text x=\"35\" y=\"40\" text-anchor=\"middle\" font-size=\"8\">Square Doc</text>\n</svg>"
-}"#;
-    
-    // Create sample files
-    save_document_to_storage(sample_circle, "sample_circle.json");
-    save_document_to_storage(sample_square, "sample_square.json");
-    
-    println!("Mobile: Initialized sample files for first run");
-}
-
-/// Shares a document using the mobile platform's share sheet
-fn share_document_mobile(content: &str) {
-    println!("Mobile: Would share document ({} chars)", content.len());
 }
