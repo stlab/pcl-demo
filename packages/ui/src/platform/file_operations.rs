@@ -4,18 +4,12 @@
 //! factoring out cfg-dependent code to improve rust-analyzer support.
 
 use std::path::PathBuf;
-
-// Web-specific imports
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen::prelude::*;
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen::JsCast;
-#[cfg(target_arch = "wasm32")]
-use web_sys::{window, Blob, Url, HtmlAnchorElement};
-
-// Mobile-specific imports
-#[cfg(feature = "mobile")]
 use std::fs;
+
+// Web API imports (available on all platforms for development ease)
+use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
+use web_sys::{window, Blob, Url, HtmlAnchorElement};
 
 /// Result type for file operations
 pub type FileOperationResult<T> = anyhow::Result<T>;

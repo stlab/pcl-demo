@@ -1,15 +1,11 @@
 use dioxus::prelude::*;
 use crate::application_state::*;
-
-// Web-specific imports
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen::prelude::*;
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen::JsCast;
-#[cfg(target_arch = "wasm32")]
-use web_sys::{window, Blob, Url, HtmlAnchorElement};
-#[cfg(target_arch = "wasm32")]
 use std::rc::Rc;
+
+// Web API imports (available on all platforms for development ease)
+use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
+use web_sys::{window, Blob, Url, HtmlAnchorElement, HtmlInputElement, FileReader, Event};
 
 
 
