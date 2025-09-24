@@ -10,11 +10,9 @@ pub use platform::{
     save_document,
     load_document,
     delete_document,
-    get_saved_documents,
-    get_file_size,
-    show_open_dialog,
-    show_save_dialog,
-    share_document
+    get_saved_files,
+    get_file_size_impl,
+    share_document_mobile
 };
 
 // Platform-specific modules - now available on all platforms for better rust-analyzer support

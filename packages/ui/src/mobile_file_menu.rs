@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 use crate::application_state::*;
-use crate::platform::{get_saved_files, get_file_size, save_document, load_document, delete_document, share_document};
+use crate::platform::{get_saved_files, get_file_size_impl, save_document, load_document, delete_document, share_document_mobile};
 
 // Mobile-specific imports
 use std::path::PathBuf;
@@ -66,7 +66,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
     let handle_share = move |_| {
         let current_state = state.read();
         if let Ok(json_content) = serde_json::to_string_pretty(&current_state.the_only_document) {
-            share_document(&json_content);
+            share_document_mobile(&json_content);
         }
         menu_open.set(false);
     };
@@ -284,7 +284,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                                         div {
                                             class: "file-item-info",
                                             div { class: "file-item-name", "{filename}" }
-                                            div { class: "file-item-size", "{get_file_size(filename)} bytes" }
+                                            div { class: "file-item-size", "{get_file_size_impl(filename)} bytes" }
                                         }
                                     }
                                     button {

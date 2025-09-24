@@ -49,52 +49,9 @@ pub fn delete_document(filename: &str) -> FileOperationResult<()> {
     }
 }
 
-/// Get list of saved documents using the appropriate platform method
-pub fn get_saved_documents() -> FileOperationResult<Vec<String>> {
-    if cfg!(feature = "mobile") {
-        Ok(get_saved_files())
-    } else {
-        Ok(vec![])
-    }
-}
 
-/// Get file size using the appropriate platform method
-pub fn get_file_size(filename: &str) -> usize {
-    if cfg!(feature = "mobile") {
-        get_file_size_impl(filename)
-    } else {
-        0
-    }
-}
 
-/// Show platform-appropriate file open dialog
-pub fn show_open_dialog() -> Option<PathBuf> {
-    if cfg!(not(any(target_arch = "wasm32", feature = "mobile"))) {
-        show_open_dialog_impl()
-    } else {
-        unreachable!("show_open_dialog should not be called on this platform")
-    }
-}
 
-/// Show platform-appropriate file save dialog
-pub fn show_save_dialog() -> Option<PathBuf> {
-    if cfg!(not(any(target_arch = "wasm32", feature = "mobile"))) {
-        show_save_dialog_impl()
-    } else {
-        unreachable!("show_save_dialog should not be called on this platform")
-    }
-}
-
-/// Share document using platform-appropriate method
-pub fn share_document(content: &str) {
-    if cfg!(target_arch = "wasm32") {
-        println!("Web: Would share document ({} chars)", content.len());
-    } else if cfg!(feature = "mobile") {
-        share_document_mobile(content);
-    } else {
-        println!("Desktop: Would share document ({} chars)", content.len());
-    }
-}
 
 // Platform-specific implementation functions
 
@@ -335,12 +292,3 @@ pub fn share_document_mobile(content: &str) {
     }
 }
 
-fn show_open_dialog_impl() -> Option<PathBuf> {
-    // Desktop file dialog functionality is handled in the desktop package
-    None
-}
-
-fn show_save_dialog_impl() -> Option<PathBuf> {
-    // Desktop file dialog functionality is handled in the desktop package
-    None
-}
