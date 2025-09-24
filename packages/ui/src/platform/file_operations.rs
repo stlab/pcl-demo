@@ -24,31 +24,31 @@ pub fn save_document(content: &str, filename: &str) -> FileOperationResult<()> {
         // Mobile platform uses persistent storage
         save_document_to_storage(content, filename)
     } else {
-        // Desktop uses application state for saving
-        Err(anyhow::anyhow!("Desktop platform saves through application state"))
+        // Desktop should never call this function
+        unreachable!("save_document should not be called on desktop platform")
     }
 }
 
 /// Load a document using the appropriate platform method
 pub fn load_document(filename: &str) -> FileOperationResult<String> {
     if cfg!(target_arch = "wasm32") {
-        // Web platform loads through file input element
-        Err(anyhow::anyhow!("Web platform loads files through file input"))
+        // Web should never call this function - uses file input element instead
+        unreachable!("load_document should not be called on web platform")
     } else if cfg!(feature = "mobile") {
         // Mobile platform loads from persistent storage
         load_document_from_storage(filename)
             .ok_or_else(|| anyhow::anyhow!("Failed to load document: {}", filename))
     } else {
-        // Desktop uses application state for loading
-        Err(anyhow::anyhow!("Desktop platform loads through application state"))
+        // Desktop should never call this function
+        unreachable!("load_document should not be called on desktop platform")
     }
 }
 
 /// Delete a document using the appropriate platform method
 pub fn delete_document(filename: &str) -> FileOperationResult<()> {
     if cfg!(target_arch = "wasm32") {
-        // Web platform doesn't support direct file deletion
-        Err(anyhow::anyhow!("Web platform doesn't support file deletion"))
+        // Web should never call this function
+        unreachable!("delete_document should not be called on web platform")
     } else if cfg!(feature = "mobile") {
         // Mobile platform deletes from persistent storage
         if delete_document_from_storage(filename) {
@@ -57,8 +57,8 @@ pub fn delete_document(filename: &str) -> FileOperationResult<()> {
             Err(anyhow::anyhow!("Failed to delete document: {}", filename))
         }
     } else {
-        // Desktop uses filesystem directly through application state
-        Err(anyhow::anyhow!("Desktop platform deletes through filesystem"))
+        // Desktop should never call this function
+        unreachable!("delete_document should not be called on desktop platform")
     }
 }
 
@@ -93,11 +93,11 @@ pub fn get_file_size(filename: &str) -> usize {
 /// Show platform-appropriate file open dialog
 pub fn show_open_dialog() -> Option<PathBuf> {
     if cfg!(target_arch = "wasm32") {
-        // Web platform uses file input element, not native dialog
-        None
+        // Web should never call this - uses file input element instead
+        unreachable!("show_open_dialog should not be called on web platform")
     } else if cfg!(feature = "mobile") {
-        // Mobile uses its own file list UI
-        None
+        // Mobile should never call this - uses its own file list UI instead
+        unreachable!("show_open_dialog should not be called on mobile platform")
     } else {
         // Desktop uses native file dialogs
         show_open_dialog_impl()
@@ -107,11 +107,11 @@ pub fn show_open_dialog() -> Option<PathBuf> {
 /// Show platform-appropriate file save dialog
 pub fn show_save_dialog() -> Option<PathBuf> {
     if cfg!(target_arch = "wasm32") {
-        // Web platform uses browser download, not native dialog
-        None
+        // Web should never call this - uses browser download instead
+        unreachable!("show_save_dialog should not be called on web platform")
     } else if cfg!(feature = "mobile") {
-        // Mobile uses its own filename input UI
-        None
+        // Mobile should never call this - uses its own filename input UI instead
+        unreachable!("show_save_dialog should not be called on mobile platform")
     } else {
         // Desktop uses native file dialogs
         show_save_dialog_impl()
