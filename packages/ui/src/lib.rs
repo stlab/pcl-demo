@@ -3,15 +3,16 @@
 mod document_ui;
 pub use document_ui::DocumentUI;
 
+mod platform;
+pub use platform::*;
+
+// Platform-specific modules are still needed for their implementations
+// but are no longer exported directly - access through platform abstraction
 #[cfg(target_arch = "wasm32")]
 mod file_menu;
-#[cfg(target_arch = "wasm32")]
-pub use file_menu::FileMenu;
 
 #[cfg(feature = "mobile")]
 mod mobile_file_menu;
-#[cfg(feature = "mobile")]
-pub use mobile_file_menu::MobileFileMenu;
 
 mod application_state;
 pub use application_state::*;

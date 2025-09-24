@@ -1,33 +1,8 @@
 use dioxus::prelude::*;
 use crate::application_state::*;
-
-#[cfg(target_arch = "wasm32")]
-use crate::file_menu::FileMenu;
-
-#[cfg(feature = "mobile")]
-use crate::mobile_file_menu::MobileFileMenu;
+use crate::platform::render_file_menu;
 
 const DOCUMENT_CSS: Asset = asset!("/assets/styling/document.css");
-
-/// Helper function to conditionally render the file menu
-#[cfg(target_arch = "wasm32")]
-fn render_file_menu(application_state: Signal<ApplicationState>) -> Element {
-    rsx! {
-        FileMenu { application_state }
-    }
-}
-
-#[cfg(feature = "mobile")]
-fn render_file_menu(application_state: Signal<ApplicationState>) -> Element {
-    rsx! {
-        MobileFileMenu { application_state }
-    }
-}
-
-#[cfg(not(any(target_arch = "wasm32", feature = "mobile")))]
-fn render_file_menu(_application_state: Signal<ApplicationState>) -> Element {
-    rsx! {}
-}
 
 /// The UI element that describes a document.
 #[component]

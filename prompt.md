@@ -283,6 +283,9 @@ write:
     /// Saves the document as `p`.
     pub fn save_to_file<P: AsRef<Path>>(&self, p: P) -> anyhow::Result<()> {
 ```
+### Testing
+
+You can test that the code builds with `dx build --package desktop && dx build --package web && dx build --package mobile --platform desktop`
 
 ### Running the Web app
 

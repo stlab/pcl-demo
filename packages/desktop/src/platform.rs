@@ -1,0 +1,139 @@
+//! Platform-specific abstractions for desktop application
+//!
+//! This module factors out cfg-dependent code to improve rust-analyzer support.
+
+use dioxus::desktop::muda::accelerator::{Accelerator, Modifiers, Code};
+
+/// Platform-specific modifier key configuration
+pub struct PlatformModifiers {
+    /// The base modifier key for menu shortcuts (Cmd on macOS, Ctrl elsewhere)
+    pub base: Modifiers,
+}
+
+impl PlatformModifiers {
+    /// Get the platform-appropriate modifier configuration
+    pub fn new() -> Self {
+        Self {
+            base: get_base_modifier(),
+        }
+    }
+    
+    /// Create an accelerator with the base modifier and given key
+    pub fn menu_key(&self, key: Code) -> Option<Accelerator> {
+        Some(Accelerator::new(Some(self.base), key))
+    }
+    
+    /// Create an accelerator with custom modifiers
+    #[allow(dead_code)]
+    pub fn custom_key(&self, key: Code, modifiers: Modifiers) -> Option<Accelerator> {
+        Some(Accelerator::new(Some(modifiers), key))
+    }
+    
+    /// Create an accelerator with base modifier plus additional modifiers
+    pub fn extended_key(&self, key: Code, additional: Modifiers) -> Option<Accelerator> {
+        Some(Accelerator::new(Some(self.base | additional), key))
+    }
+}
+
+impl Default for PlatformModifiers {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Get the base modifier key for the current platform
+fn get_base_modifier() -> Modifiers {
+    #[cfg(target_os = "macos")]
+    return Modifiers::META;
+    
+    #[cfg(not(target_os = "macos"))]
+    return Modifiers::CONTROL;
+}
+
+/// Platform-specific file dialog operations
+pub struct PlatformDialogs;
+
+impl PlatformDialogs {
+    /// Show an open file dialog and return the selected path
+    pub fn show_open_dialog() -> Option<std::path::PathBuf> {
+        use rfd::FileDialog;
+        
+        FileDialog::new()
+            .add_filter("JSON Documents", &["json"])
+            .add_filter("All Files", &["*"])
+            .set_title("Open Document")
+            .pick_file()
+    }
+    
+    /// Show a save file dialog and return the selected path
+    pub fn show_save_dialog() -> Option<std::path::PathBuf> {
+        use rfd::FileDialog;
+        
+        FileDialog::new()
+            .add_filter("JSON Documents", &["json"])
+            .add_filter("All Files", &["*"])
+            .set_title("Save Document")
+            .set_file_name("document.json")
+            .save_file()
+    }
+}
+
+/// Platform-specific menu creation utilities
+pub struct PlatformMenu;
+
+impl PlatformMenu {
+    /// Create the application menu bar with platform-appropriate structure
+    pub fn create_menu_bar() -> dioxus::desktop::muda::Menu {
+        use dioxus::desktop::muda::{Menu, MenuItem, PredefinedMenuItem, Submenu, MenuId};
+        
+        let menu_bar = Menu::new();
+        let modifiers = PlatformModifiers::new();
+
+        // Add platform-specific app menu on macOS
+        add_app_menu_if_needed(&menu_bar);
+
+        // Create File submenu
+        let file_menu = Submenu::new("File", true);
+        
+        // Add File menu items with explicit IDs
+        append_menu_item(&file_menu, "new", "New", modifiers.menu_key(Code::KeyN));
+        append_menu_item(&file_menu, "open", "Open", modifiers.menu_key(Code::KeyO));
+        append_menu_item(&file_menu, "save", "Save", modifiers.menu_key(Code::KeyS));
+        append_menu_item(&file_menu, "save_as", "Save As...", 
+                        modifiers.extended_key(Code::KeyS, Modifiers::SHIFT));
+        file_menu.append(&PredefinedMenuItem::separator()).unwrap();
+        file_menu.append(&PredefinedMenuItem::quit(Some("Quit"))).unwrap();
+        
+        // Add File submenu to main menu
+        menu_bar.append(&file_menu).unwrap();
+        
+        menu_bar
+    }
+}
+
+/// Add application menu on macOS to ensure File menu shows correctly
+fn add_app_menu_if_needed(menu_bar: &dioxus::desktop::muda::Menu) {
+    #[cfg(target_os = "macos")]
+    {
+        use dioxus::desktop::muda::Submenu;
+        let app_menu = Submenu::new("CodeLess", true);
+        menu_bar.append(&app_menu).unwrap();
+    }
+    
+    #[cfg(not(target_os = "macos"))]
+    {
+        // No app menu needed on other platforms
+        let _ = menu_bar; // Suppress unused parameter warning
+    }
+}
+
+/// Append a menu item with the given parameters
+fn append_menu_item(
+    submenu: &dioxus::desktop::muda::Submenu, 
+    id: &str, 
+    text: &str, 
+    accelerator: Option<Accelerator>
+) {
+    use dioxus::desktop::muda::{MenuItem, MenuId};
+    submenu.append(&MenuItem::with_id(MenuId::new(id), text, true, accelerator)).unwrap();
+}
