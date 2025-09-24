@@ -260,8 +260,9 @@ pub fn get_file_operations() -> PlatformFileOperations {
 
 // Platform-specific implementation functions
 
-#[cfg(target_arch = "wasm32")]
 fn download_file(content: &str, filename: &str) {
+    // On web platforms, this will trigger a download
+    // On non-web platforms, the web APIs will be no-ops
     let window = window().unwrap();
     let document = window.document().unwrap();
     
@@ -293,100 +294,76 @@ fn download_file(content: &str, filename: &str) {
     Url::revoke_object_url(&url).unwrap();
 }
 
-#[cfg(not(target_arch = "wasm32"))]
-fn download_file(_content: &str, _filename: &str) {
-    // Not applicable for non-web platforms
-}
-
-#[cfg(feature = "mobile")]
 fn save_document_to_storage(content: &str, filename: &str) -> FileOperationResult<()> {
     let storage_dir = get_storage_directory();
     let file_path = storage_dir.join(filename);
     
-    println!("Mobile: Attempting to save {} to {:?}", filename, file_path);
-    println!("Mobile: Content length: {} bytes", content.len());
+    println!("Storage: Attempting to save {} to {:?}", filename, file_path);
+    println!("Storage: Content length: {} bytes", content.len());
     
     fs::write(&file_path, content).map_err(|e| {
         anyhow::anyhow!("Failed to save {} to {:?}: {}", filename, file_path, e)
     })?;
     
-    println!("Mobile: Successfully saved {} to {:?}", filename, file_path);
+    println!("Storage: Successfully saved {} to {:?}", filename, file_path);
     
     // Verify the file was actually written
     if let Ok(metadata) = fs::metadata(&file_path) {
-        println!("Mobile: File size on disk: {} bytes", metadata.len());
+        println!("Storage: File size on disk: {} bytes", metadata.len());
     }
     
     Ok(())
 }
 
-#[cfg(not(feature = "mobile"))]
-fn save_document_to_storage(_content: &str, _filename: &str) -> FileOperationResult<()> {
-    Err(anyhow::anyhow!("Mobile storage not available on this platform"))
-}
-
-#[cfg(feature = "mobile")]
 fn load_document_from_storage(filename: &str) -> Option<String> {
     let storage_dir = get_storage_directory();
     let file_path = storage_dir.join(filename);
     
     match fs::read_to_string(&file_path) {
         Ok(content) => {
-            println!("Mobile: Loaded {} from {:?}", filename, file_path);
+            println!("Storage: Loaded {} from {:?}", filename, file_path);
             Some(content)
         }
         Err(e) => {
-            println!("Mobile: Failed to load {}: {}", filename, e);
+            println!("Storage: Failed to load {}: {}", filename, e);
             None
         }
     }
 }
 
-#[cfg(not(feature = "mobile"))]
-fn load_document_from_storage(_filename: &str) -> Option<String> {
-    None
-}
-
-#[cfg(feature = "mobile")]
 fn delete_document_from_storage(filename: &str) -> bool {
     let storage_dir = get_storage_directory();
     let file_path = storage_dir.join(filename);
     
     match fs::remove_file(&file_path) {
         Ok(_) => {
-            println!("Mobile: Deleted {} from {:?}", filename, file_path);
+            println!("Storage: Deleted {} from {:?}", filename, file_path);
             true
         }
         Err(e) => {
-            println!("Mobile: Failed to delete {}: {}", filename, e);
+            println!("Storage: Failed to delete {}: {}", filename, e);
             false
         }
     }
 }
 
-#[cfg(not(feature = "mobile"))]
-fn delete_document_from_storage(_filename: &str) -> bool {
-    false
-}
-
-#[cfg(feature = "mobile")]
 fn get_saved_files() -> Vec<String> {
     let storage_dir = get_storage_directory();
-    println!("Mobile: Looking for files in {:?}", storage_dir);
+    println!("Storage: Looking for files in {:?}", storage_dir);
     
     // Read all .json files from the storage directory
     let mut files = Vec::new();
     
     match fs::read_dir(&storage_dir) {
         Ok(entries) => {
-            println!("Mobile: Successfully opened directory, reading entries...");
+            println!("Storage: Successfully opened directory, reading entries...");
             for entry in entries {
                 if let Ok(entry) = entry {
                     let path = entry.path();
                     if let Some(filename) = path.file_name() {
                         if let Some(filename_str) = filename.to_str() {
                             if filename_str.ends_with(".json") {
-                                println!("Mobile: Found file: {}", filename_str);
+                                println!("Storage: Found file: {}", filename_str);
                                 files.push(filename_str.to_string());
                             }
                         }
@@ -395,13 +372,15 @@ fn get_saved_files() -> Vec<String> {
             }
         }
         Err(e) => {
-            println!("Mobile: Failed to read directory {:?}: {}", storage_dir, e);
+            println!("Storage: Failed to read directory {:?}: {}", storage_dir, e);
+            // Return empty list if directory doesn't exist or can't be read
+            return vec![];
         }
     }
     
     // Add sample files if directory is empty (first run)
     if files.is_empty() {
-        println!("Mobile: No files found, initializing sample files...");
+        println!("Storage: No files found, initializing sample files...");
         initialize_sample_files();
         // Re-read after initialization
         if let Ok(entries) = fs::read_dir(&storage_dir) {
@@ -411,7 +390,7 @@ fn get_saved_files() -> Vec<String> {
                     if let Some(filename) = path.file_name() {
                         if let Some(filename_str) = filename.to_str() {
                             if filename_str.ends_with(".json") {
-                                println!("Mobile: Found file after init: {}", filename_str);
+                                println!("Storage: Found file after init: {}", filename_str);
                                 files.push(filename_str.to_string());
                             }
                         }
@@ -422,16 +401,10 @@ fn get_saved_files() -> Vec<String> {
     }
     
     files.sort(); // Sort alphabetically
-    println!("Mobile: Returning {} files: {:?}", files.len(), files);
+    println!("Storage: Returning {} files: {:?}", files.len(), files);
     files
 }
 
-#[cfg(not(feature = "mobile"))]
-fn get_saved_files() -> Vec<String> {
-    vec![]
-}
-
-#[cfg(feature = "mobile")]
 fn get_file_size_impl(filename: &str) -> usize {
     let storage_dir = get_storage_directory();
     let file_path = storage_dir.join(filename);
@@ -442,16 +415,8 @@ fn get_file_size_impl(filename: &str) -> usize {
     }
 }
 
-#[cfg(not(feature = "mobile"))]
-fn get_file_size_impl(_filename: &str) -> usize {
-    0
-}
-
-#[cfg(feature = "mobile")]
 fn get_storage_directory() -> PathBuf {
-    
-    #[cfg(target_os = "ios")]
-    {
+    if cfg!(target_os = "ios") {
         // On iOS, try to use the app's Documents directory
         let storage_dir = if let Some(home) = std::env::var_os("HOME") {
             let mut dir = PathBuf::from(home);
@@ -476,10 +441,7 @@ fn get_storage_directory() -> PathBuf {
                 temp_dir
             }
         }
-    }
-    
-    #[cfg(target_os = "android")]
-    {
+    } else if cfg!(target_os = "android") {
         // On Android, try to use internal storage
         let storage_dir = if let Ok(current) = std::env::current_dir() {
             let mut dir = current;
@@ -501,10 +463,7 @@ fn get_storage_directory() -> PathBuf {
                 std::env::temp_dir()
             }
         }
-    }
-    
-    #[cfg(not(any(target_os = "ios", target_os = "android")))]
-    {
+    } else {
         // Desktop/other platforms
         let mut storage_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
         storage_dir.push("mobile_documents");
@@ -522,7 +481,6 @@ fn get_storage_directory() -> PathBuf {
     }
 }
 
-#[cfg(feature = "mobile")]
 fn initialize_sample_files() {
     let sample_circle = r#"{
   "html": "<svg viewBox=\"0 0 70 70\" xmlns=\"http://www.w3.org/2000/svg\">\n<circle cx=\"35\" cy=\"35\" r=\"25\" fill=\"lightblue\" stroke=\"darkblue\" stroke-width=\"2\"/>\n<text x=\"35\" y=\"40\" text-anchor=\"middle\" font-size=\"8\">Circle Doc</text>\n</svg>"
@@ -539,47 +497,24 @@ fn initialize_sample_files() {
     println!("Mobile: Initialized sample files for first run");
 }
 
-#[cfg(feature = "mobile")]
 fn share_document_mobile(content: &str) {
-    #[cfg(target_os = "android")]
-    {
+    if cfg!(target_os = "android") {
         println!("Android: Opening share sheet");
-    }
-    
-    #[cfg(target_os = "ios")]
-    {
+    } else if cfg!(target_os = "ios") {
         println!("iOS: Opening activity view controller");
-    }
-    
-    #[cfg(not(any(target_os = "android", target_os = "ios")))]
-    {
-        println!("Mobile: Would share document ({} chars)", content.len());
+    } else {
+        println!("Share: Would share document ({} chars)", content.len());
     }
 }
 
-#[cfg(not(feature = "mobile"))]
-fn share_document_mobile(content: &str) {
-    println!("Share not available on non-mobile platforms ({} chars)", content.len());
-}
-
-#[cfg(not(any(target_arch = "wasm32", feature = "mobile")))]
 fn show_open_dialog_impl() -> Option<PathBuf> {
     // Desktop file dialog functionality is handled in the desktop package
+    // Web and mobile platforms use their own UI for file selection
     None
 }
 
-#[cfg(any(target_arch = "wasm32", feature = "mobile"))]
-fn show_open_dialog_impl() -> Option<PathBuf> {
-    None
-}
-
-#[cfg(not(any(target_arch = "wasm32", feature = "mobile")))]
 fn show_save_dialog_impl() -> Option<PathBuf> {
     // Desktop file dialog functionality is handled in the desktop package
-    None
-}
-
-#[cfg(any(target_arch = "wasm32", feature = "mobile"))]
-fn show_save_dialog_impl() -> Option<PathBuf> {
+    // Web and mobile platforms use their own UI for file saving
     None
 }

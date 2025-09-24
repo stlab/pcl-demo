@@ -25,43 +25,30 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
     
     // Handler for opening a file
     let handle_open = move |_| {
-        #[cfg(target_arch = "wasm32")]
-        {
-            if let Some(input) = file_input_ref.read().as_ref() {
-                input.click();
-            }
+        if let Some(input) = file_input_ref.read().as_ref() {
+            input.click();
         }
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            // On native platforms, this would show a native file dialog
-            state.write().new_document();
-        }
+        // Note: On non-web platforms, this will be a no-op since the input element won't be populated
     };
     
     // Handler for saving the current document
     let handle_save = move |_| {
-        #[cfg(target_arch = "wasm32")]
-        {
-            let current_state = state.read();
-            if let Ok(json_content) = serde_json::to_string_pretty(&current_state.the_only_document) {
-                let filename = current_state.current_file_path
-                    .as_ref()
-                    .and_then(|p| p.file_name())
-                    .and_then(|n| n.to_str())
-                    .unwrap_or("document.json");
-                download_file(&json_content, filename);
-            }
+        let current_state = state.read();
+        if let Ok(json_content) = serde_json::to_string_pretty(&current_state.the_only_document) {
+            let filename = current_state.current_file_path
+                .as_ref()
+                .and_then(|p| p.file_name())
+                .and_then(|n| n.to_str())
+                .unwrap_or("document.json");
+            download_file(&json_content, filename);
         }
     };
     
     // Handler for save as
     let handle_save_as = move |_| {
-        #[cfg(target_arch = "wasm32")]
-        {
-            let current_state = state.read();
-            if let Ok(json_content) = serde_json::to_string_pretty(&current_state.the_only_document) {
-                download_file(&json_content, "document.json");
-            }
+        let current_state = state.read();
+        if let Ok(json_content) = serde_json::to_string_pretty(&current_state.the_only_document) {
+            download_file(&json_content, "document.json");
         }
     };
 
@@ -88,18 +75,13 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
                         style: "display: none",
                         id: "file-input-hidden",
                         onmounted: move |element| {
-                            #[cfg(target_arch = "wasm32")]
-                            {
-                                if let Some(web_element) = element.downcast::<web_sys::Element>() {
-                                    if let Ok(input) = web_element.clone().dyn_into::<web_sys::HtmlInputElement>() {
-                                        *file_input_ref.write() = Some(input);
-                                    }
+                            if let Some(web_element) = element.downcast::<web_sys::Element>() {
+                                if let Ok(input) = web_element.clone().dyn_into::<web_sys::HtmlInputElement>() {
+                                    *file_input_ref.write() = Some(input);
                                 }
                             }
                         },
                         onchange: move |_event| {
-                            #[cfg(target_arch = "wasm32")]
-                            {
                                 if let Some(input) = file_input_ref.read().as_ref() {
                                     if let Some(files) = input.files() {
                                         if files.length() > 0 {
@@ -140,7 +122,6 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
                                         }
                                     }
                                 }
-                            }
                         }
                     }
                     
