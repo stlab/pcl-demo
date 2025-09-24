@@ -155,7 +155,6 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
 
 
 /// Downloads a file with the given content and filename
-#[cfg(target_arch = "wasm32")]
 fn download_file(content: &str, filename: &str) {
     let window = window().unwrap();
     let document = window.document().unwrap();

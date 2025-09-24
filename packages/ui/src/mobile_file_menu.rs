@@ -644,23 +644,5 @@ fn initialize_sample_files() {
 
 /// Shares a document using the mobile platform's share sheet
 fn share_document_mobile(content: &str) {
-    #[cfg(target_os = "android")]
-    {
-        // Android-specific share logic
-        // In a real app, this might use Android's Intent system
-        println!("Android: Opening share sheet");
-    }
-    
-    #[cfg(target_os = "ios")]
-    {
-        // iOS-specific share logic  
-        // In a real app, this might use iOS's UIActivityViewController
-        println!("iOS: Opening activity view controller");
-    }
-    
-    #[cfg(not(any(target_os = "android", target_os = "ios")))]
-    {
-        // Fallback for testing on other platforms
-        println!("Mobile: Would share document ({} chars)", content.len());
-    }
+    println!("Mobile: Would share document ({} chars)", content.len());
 }
