@@ -527,11 +527,6 @@ fn get_storage_directory() -> PathBuf {
     }
 }
 
-#[cfg(not(feature = "mobile"))]
-fn get_storage_directory() -> PathBuf {
-    PathBuf::from(".")
-}
-
 #[cfg(feature = "mobile")]
 fn initialize_sample_files() {
     let sample_circle = r#"{
@@ -547,11 +542,6 @@ fn initialize_sample_files() {
     let _ = save_document_to_storage(sample_square, "sample_square.json");
     
     println!("Mobile: Initialized sample files for first run");
-}
-
-#[cfg(not(feature = "mobile"))]
-fn initialize_sample_files() {
-    // No-op for non-mobile platforms
 }
 
 #[cfg(feature = "mobile")]
