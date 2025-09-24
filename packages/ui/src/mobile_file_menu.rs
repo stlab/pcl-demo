@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 use crate::application_state::*;
-use crate::platform::{save_document_to_storage, load_document_from_storage, delete_document_from_storage, get_saved_files, get_file_size_impl, initialize_sample_files, share_document_mobile};
+use crate::platform::{get_saved_files, get_file_size, save_document, load_document, delete_document, share_document};
 
 // Mobile-specific imports
 use std::path::PathBuf;
@@ -42,7 +42,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                 .and_then(|n| n.to_str())
                 .unwrap_or("document.json");
             
-            if let Ok(_) = save_document_to_storage(&json_content, filename) {
+            if let Ok(_) = save_document(&json_content, filename) {
                 saved_files.set(get_saved_files()); // Refresh file list
                 println!("Mobile: Saved {}", filename);
             }
@@ -73,7 +73,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
     let handle_share = move |_| {
         let current_state = state.read();
         if let Ok(json_content) = serde_json::to_string_pretty(&current_state.the_only_document) {
-            share_document_mobile(&json_content);
+            share_document(&json_content);
         }
         menu_open.set(false);
     };
@@ -115,7 +115,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                     format!("{}.json", filename)
                 };
                 
-                if let Ok(_) = save_document_to_storage(&json_content, &filename) {
+                                                if let Ok(_) = save_document(&json_content, &filename) {
                     {
                         let mut app_state = state.write();
                         app_state.current_file_path = Some(std::path::PathBuf::from(&filename));
@@ -274,7 +274,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                                             let mut local_state = state.clone();
                                             let mut local_file_list_open = file_list_open.clone();
                                             move |_| {
-                                                if let Some(content) = load_document_from_storage(&filename) {
+                                                if let Ok(content) = load_document(&filename) {
                                                     match serde_json::from_str::<crate::Document>(&content) {
                                                         Ok(document) => {
                                                             local_state.write().the_only_document = document;
@@ -296,7 +296,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                                         div {
                                             class: "file-item-info",
                                             div { class: "file-item-name", "{filename}" }
-                                            div { class: "file-item-size", "{get_file_size_impl(filename)} bytes" }
+                                            div { class: "file-item-size", "{get_file_size(filename)} bytes" }
                                         }
                                     }
                                     button {
@@ -305,7 +305,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                                             let filename = filename.clone();
                                             let mut local_saved_files = saved_files.clone();
                                             move |_| {
-                                                if delete_document_from_storage(&filename) {
+                                                if let Ok(_) = delete_document(&filename) {
                                                     local_saved_files.set(get_saved_files()); // Refresh file list
                                                     println!("Mobile: Deleted {}", filename);
                                                 }
@@ -371,7 +371,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                                                     format!("{}.json", filename)
                                                 };
                                                 
-                                                if let Ok(_) = save_document_to_storage(&json_content, &filename) {
+                                                if let Ok(_) = save_document(&json_content, &filename) {
                                                     {
                                                         let mut app_state = state.write();
                                                         app_state.current_file_path = Some(std::path::PathBuf::from(&filename));

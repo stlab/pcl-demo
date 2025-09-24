@@ -5,11 +5,16 @@ pub use document_ui::DocumentUI;
 
 mod platform;
 pub use platform::{
-    render_file_menu, 
-    get_file_operations, 
-    FileOperations, 
+    render_file_menu,
     FileOperationResult,
-    UnifiedFileOperations
+    save_document,
+    load_document,
+    delete_document,
+    get_saved_documents,
+    get_file_size,
+    show_open_dialog,
+    show_save_dialog,
+    share_document
 };
 
 // Platform-specific modules - now available on all platforms for better rust-analyzer support

@@ -14,151 +14,122 @@ use web_sys::{window, Blob, Url, HtmlAnchorElement};
 /// Result type for file operations
 pub type FileOperationResult<T> = anyhow::Result<T>;
 
-/// Trait for platform-specific file operations
-pub trait FileOperations {
-    /// Save a document to storage with the given filename
-    fn save_document(&self, content: &str, filename: &str) -> FileOperationResult<()>;
-    
-    /// Load a document from storage
-    fn load_document(&self, filename: &str) -> FileOperationResult<String>;
-    
-    /// Delete a document from storage
-    fn delete_document(&self, filename: &str) -> FileOperationResult<()>;
-    
-    /// Get list of saved documents
-    fn get_saved_documents(&self) -> FileOperationResult<Vec<String>>;
-    
-    /// Get file size in bytes
-    fn get_file_size(&self, filename: &str) -> usize;
-    
-    /// Show platform-specific file picker for opening
-    fn show_open_dialog(&self) -> Option<PathBuf>;
-    
-    /// Show platform-specific file picker for saving
-    fn show_save_dialog(&self) -> Option<PathBuf>;
-    
-    /// Share document using platform-specific sharing mechanism
-    fn share_document(&self, content: &str);
+/// Save a document using the appropriate platform method
+pub fn save_document(content: &str, filename: &str) -> FileOperationResult<()> {
+    if cfg!(target_arch = "wasm32") {
+        // Web platform uses browser download
+        download_file(content, filename);
+        Ok(())
+    } else if cfg!(feature = "mobile") {
+        // Mobile platform uses persistent storage
+        save_document_to_storage(content, filename)
+    } else {
+        // Desktop uses application state for saving
+        Err(anyhow::anyhow!("Desktop platform saves through application state"))
+    }
 }
 
-/// Unified file operations implementation that works on all platforms
-pub struct UnifiedFileOperations;
+/// Load a document using the appropriate platform method
+pub fn load_document(filename: &str) -> FileOperationResult<String> {
+    if cfg!(target_arch = "wasm32") {
+        // Web platform loads through file input element
+        Err(anyhow::anyhow!("Web platform loads files through file input"))
+    } else if cfg!(feature = "mobile") {
+        // Mobile platform loads from persistent storage
+        load_document_from_storage(filename)
+            .ok_or_else(|| anyhow::anyhow!("Failed to load document: {}", filename))
+    } else {
+        // Desktop uses application state for loading
+        Err(anyhow::anyhow!("Desktop platform loads through application state"))
+    }
+}
 
-impl FileOperations for UnifiedFileOperations {
-    fn save_document(&self, content: &str, filename: &str) -> FileOperationResult<()> {
-        if cfg!(target_arch = "wasm32") {
-            // Web platform uses browser download
-            download_file(content, filename);
+/// Delete a document using the appropriate platform method
+pub fn delete_document(filename: &str) -> FileOperationResult<()> {
+    if cfg!(target_arch = "wasm32") {
+        // Web platform doesn't support direct file deletion
+        Err(anyhow::anyhow!("Web platform doesn't support file deletion"))
+    } else if cfg!(feature = "mobile") {
+        // Mobile platform deletes from persistent storage
+        if delete_document_from_storage(filename) {
             Ok(())
-        } else if cfg!(feature = "mobile") {
-            // Mobile platform uses persistent storage
-            save_document_to_storage(content, filename)
         } else {
-            // Desktop uses application state for saving
-            Err(anyhow::anyhow!("Desktop platform saves through application state"))
+            Err(anyhow::anyhow!("Failed to delete document: {}", filename))
         }
-    }
-    
-    fn load_document(&self, filename: &str) -> FileOperationResult<String> {
-        if cfg!(target_arch = "wasm32") {
-            // Web platform loads through file input element
-            Err(anyhow::anyhow!("Web platform loads files through file input"))
-        } else if cfg!(feature = "mobile") {
-            // Mobile platform loads from persistent storage
-            load_document_from_storage(filename)
-                .ok_or_else(|| anyhow::anyhow!("Failed to load document: {}", filename))
-        } else {
-            // Desktop uses application state for loading
-            Err(anyhow::anyhow!("Desktop platform loads through application state"))
-        }
-    }
-    
-    fn delete_document(&self, filename: &str) -> FileOperationResult<()> {
-        if cfg!(target_arch = "wasm32") {
-            // Web platform doesn't support direct file deletion
-            Err(anyhow::anyhow!("Web platform doesn't support file deletion"))
-        } else if cfg!(feature = "mobile") {
-            // Mobile platform deletes from persistent storage
-            if delete_document_from_storage(filename) {
-                Ok(())
-            } else {
-                Err(anyhow::anyhow!("Failed to delete document: {}", filename))
-            }
-        } else {
-            // Desktop uses filesystem directly through application state
-            Err(anyhow::anyhow!("Desktop platform deletes through filesystem"))
-        }
-    }
-    
-    fn get_saved_documents(&self) -> FileOperationResult<Vec<String>> {
-        if cfg!(target_arch = "wasm32") {
-            // Web platform doesn't have persistent storage for file listing
-            Ok(vec![])
-        } else if cfg!(feature = "mobile") {
-            // Mobile platform lists files from persistent storage
-            Ok(get_saved_files())
-        } else {
-            // Desktop doesn't need a saved documents list
-            Ok(vec![])
-        }
-    }
-    
-    fn get_file_size(&self, filename: &str) -> usize {
-        if cfg!(target_arch = "wasm32") {
-            // Web platform doesn't track file sizes
-            0
-        } else if cfg!(feature = "mobile") {
-            // Mobile platform gets size from persistent storage
-            get_file_size_impl(filename)
-        } else {
-            // Desktop gets file size through filesystem
-            0
-        }
-    }
-    
-    fn show_open_dialog(&self) -> Option<PathBuf> {
-        if cfg!(target_arch = "wasm32") {
-            // Web platform uses file input element, not native dialog
-            None
-        } else if cfg!(feature = "mobile") {
-            // Mobile uses its own file list UI
-            None
-        } else {
-            // Desktop uses native file dialogs
-            show_open_dialog_impl()
-        }
-    }
-    
-    fn show_save_dialog(&self) -> Option<PathBuf> {
-        if cfg!(target_arch = "wasm32") {
-            // Web platform uses browser download, not native dialog
-            None
-        } else if cfg!(feature = "mobile") {
-            // Mobile uses its own filename input UI
-            None
-        } else {
-            // Desktop uses native file dialogs
-            show_save_dialog_impl()
-        }
-    }
-    
-    fn share_document(&self, content: &str) {
-        if cfg!(target_arch = "wasm32") {
-            // Web platform could use Web Share API in the future
-            println!("Web: Would share document ({} chars)", content.len());
-        } else if cfg!(feature = "mobile") {
-            // Mobile platform uses platform-specific sharing
-            share_document_mobile(content);
-        } else {
-            // Desktop sharing
-            println!("Desktop: Would share document ({} chars)", content.len());
-        }
+    } else {
+        // Desktop uses filesystem directly through application state
+        Err(anyhow::anyhow!("Desktop platform deletes through filesystem"))
     }
 }
 
-/// Get the unified file operations implementation
-pub fn get_file_operations() -> UnifiedFileOperations {
-    UnifiedFileOperations
+/// Get list of saved documents using the appropriate platform method
+pub fn get_saved_documents() -> FileOperationResult<Vec<String>> {
+    if cfg!(target_arch = "wasm32") {
+        // Web platform doesn't have persistent storage for file listing
+        Ok(vec![])
+    } else if cfg!(feature = "mobile") {
+        // Mobile platform lists files from persistent storage
+        Ok(get_saved_files())
+    } else {
+        // Desktop doesn't need a saved documents list
+        Ok(vec![])
+    }
+}
+
+/// Get file size using the appropriate platform method
+pub fn get_file_size(filename: &str) -> usize {
+    if cfg!(target_arch = "wasm32") {
+        // Web platform doesn't track file sizes
+        0
+    } else if cfg!(feature = "mobile") {
+        // Mobile platform gets size from persistent storage
+        get_file_size_impl(filename)
+    } else {
+        // Desktop gets file size through filesystem
+        0
+    }
+}
+
+/// Show platform-appropriate file open dialog
+pub fn show_open_dialog() -> Option<PathBuf> {
+    if cfg!(target_arch = "wasm32") {
+        // Web platform uses file input element, not native dialog
+        None
+    } else if cfg!(feature = "mobile") {
+        // Mobile uses its own file list UI
+        None
+    } else {
+        // Desktop uses native file dialogs
+        show_open_dialog_impl()
+    }
+}
+
+/// Show platform-appropriate file save dialog
+pub fn show_save_dialog() -> Option<PathBuf> {
+    if cfg!(target_arch = "wasm32") {
+        // Web platform uses browser download, not native dialog
+        None
+    } else if cfg!(feature = "mobile") {
+        // Mobile uses its own filename input UI
+        None
+    } else {
+        // Desktop uses native file dialogs
+        show_save_dialog_impl()
+    }
+}
+
+/// Share document using platform-appropriate method
+pub fn share_document(content: &str) {
+    if cfg!(target_arch = "wasm32") {
+        // Web platform could use Web Share API in the future
+        println!("Web: Would share document ({} chars)", content.len());
+    } else if cfg!(feature = "mobile") {
+        // Mobile platform uses platform-specific sharing
+        share_document_mobile(content);
+    } else {
+        // Desktop sharing
+        println!("Desktop: Would share document ({} chars)", content.len());
+    }
 }
 
 // Platform-specific implementation functions
