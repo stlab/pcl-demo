@@ -41,245 +41,124 @@ pub trait FileOperations {
     fn share_document(&self, content: &str);
 }
 
-/// Web-specific file operations implementation
-pub struct WebFileOperations;
+/// Unified file operations implementation that works on all platforms
+pub struct UnifiedFileOperations;
 
-impl FileOperations for WebFileOperations {
+impl FileOperations for UnifiedFileOperations {
     fn save_document(&self, content: &str, filename: &str) -> FileOperationResult<()> {
-        // Web platform uses browser download
-        download_file(content, filename);
-        Ok(())
-    }
-    
-    fn load_document(&self, _filename: &str) -> FileOperationResult<String> {
-        // Web platform loads through file input element
-        // This is handled by the FileMenu component directly
-        Err(anyhow::anyhow!("Web platform loads files through file input"))
-    }
-    
-    fn delete_document(&self, _filename: &str) -> FileOperationResult<()> {
-        // Web platform doesn't support direct file deletion
-        Err(anyhow::anyhow!("Web platform doesn't support file deletion"))
-    }
-    
-    fn get_saved_documents(&self) -> FileOperationResult<Vec<String>> {
-        // Web platform doesn't have persistent storage for file listing
-        Ok(vec![])
-    }
-    
-    fn get_file_size(&self, _filename: &str) -> usize {
-        // Web platform doesn't track file sizes
-        0
-    }
-    
-    fn show_open_dialog(&self) -> Option<PathBuf> {
-        // Web platform uses file input element, not native dialog
-        None
-    }
-    
-    fn show_save_dialog(&self) -> Option<PathBuf> {
-        // Web platform uses browser download, not native dialog
-        None
-    }
-    
-    fn share_document(&self, content: &str) {
-        // Web platform could use Web Share API in the future
-        println!("Web: Would share document ({} chars)", content.len());
-    }
-}
-
-/// Mobile-specific file operations implementation
-pub struct MobileFileOperations;
-
-impl FileOperations for MobileFileOperations {
-    fn save_document(&self, content: &str, filename: &str) -> FileOperationResult<()> {
-        if cfg!(feature = "mobile") {
+        if cfg!(target_arch = "wasm32") {
+            // Web platform uses browser download
+            download_file(content, filename);
+            Ok(())
+        } else if cfg!(feature = "mobile") {
+            // Mobile platform uses persistent storage
             save_document_to_storage(content, filename)
         } else {
-            Err(anyhow::anyhow!("Mobile storage not available - mobile feature not enabled"))
+            // Desktop uses application state for saving
+            Err(anyhow::anyhow!("Desktop platform saves through application state"))
         }
     }
     
     fn load_document(&self, filename: &str) -> FileOperationResult<String> {
-        if cfg!(feature = "mobile") {
+        if cfg!(target_arch = "wasm32") {
+            // Web platform loads through file input element
+            Err(anyhow::anyhow!("Web platform loads files through file input"))
+        } else if cfg!(feature = "mobile") {
+            // Mobile platform loads from persistent storage
             load_document_from_storage(filename)
                 .ok_or_else(|| anyhow::anyhow!("Failed to load document: {}", filename))
         } else {
-            Err(anyhow::anyhow!("Mobile storage not available - mobile feature not enabled"))
+            // Desktop uses application state for loading
+            Err(anyhow::anyhow!("Desktop platform loads through application state"))
         }
     }
     
     fn delete_document(&self, filename: &str) -> FileOperationResult<()> {
-        if cfg!(feature = "mobile") {
+        if cfg!(target_arch = "wasm32") {
+            // Web platform doesn't support direct file deletion
+            Err(anyhow::anyhow!("Web platform doesn't support file deletion"))
+        } else if cfg!(feature = "mobile") {
+            // Mobile platform deletes from persistent storage
             if delete_document_from_storage(filename) {
                 Ok(())
             } else {
                 Err(anyhow::anyhow!("Failed to delete document: {}", filename))
             }
         } else {
-            Err(anyhow::anyhow!("Mobile storage not available - mobile feature not enabled"))
+            // Desktop uses filesystem directly through application state
+            Err(anyhow::anyhow!("Desktop platform deletes through filesystem"))
         }
     }
     
     fn get_saved_documents(&self) -> FileOperationResult<Vec<String>> {
-        if cfg!(feature = "mobile") {
+        if cfg!(target_arch = "wasm32") {
+            // Web platform doesn't have persistent storage for file listing
+            Ok(vec![])
+        } else if cfg!(feature = "mobile") {
+            // Mobile platform lists files from persistent storage
             Ok(get_saved_files())
         } else {
-            Ok(vec![]) // Return empty list when mobile feature not enabled
+            // Desktop doesn't need a saved documents list
+            Ok(vec![])
         }
     }
     
     fn get_file_size(&self, filename: &str) -> usize {
-        if cfg!(feature = "mobile") {
+        if cfg!(target_arch = "wasm32") {
+            // Web platform doesn't track file sizes
+            0
+        } else if cfg!(feature = "mobile") {
+            // Mobile platform gets size from persistent storage
             get_file_size_impl(filename)
         } else {
+            // Desktop gets file size through filesystem
             0
         }
     }
     
     fn show_open_dialog(&self) -> Option<PathBuf> {
-        // Mobile uses its own file list UI
-        None
+        if cfg!(target_arch = "wasm32") {
+            // Web platform uses file input element, not native dialog
+            None
+        } else if cfg!(feature = "mobile") {
+            // Mobile uses its own file list UI
+            None
+        } else {
+            // Desktop uses native file dialogs
+            show_open_dialog_impl()
+        }
     }
     
     fn show_save_dialog(&self) -> Option<PathBuf> {
-        // Mobile uses its own filename input UI
-        None
+        if cfg!(target_arch = "wasm32") {
+            // Web platform uses browser download, not native dialog
+            None
+        } else if cfg!(feature = "mobile") {
+            // Mobile uses its own filename input UI
+            None
+        } else {
+            // Desktop uses native file dialogs
+            show_save_dialog_impl()
+        }
     }
     
     fn share_document(&self, content: &str) {
-        if cfg!(feature = "mobile") {
+        if cfg!(target_arch = "wasm32") {
+            // Web platform could use Web Share API in the future
+            println!("Web: Would share document ({} chars)", content.len());
+        } else if cfg!(feature = "mobile") {
+            // Mobile platform uses platform-specific sharing
             share_document_mobile(content);
         } else {
-            println!("Share not available - mobile feature not enabled ({} chars)", content.len());
+            // Desktop sharing
+            println!("Desktop: Would share document ({} chars)", content.len());
         }
     }
 }
 
-/// Desktop-specific file operations implementation
-pub struct DesktopFileOperations;
-
-impl FileOperations for DesktopFileOperations {
-    fn save_document(&self, _content: &str, _filename: &str) -> FileOperationResult<()> {
-        // Desktop uses application state for saving
-        Err(anyhow::anyhow!("Desktop platform saves through application state"))
-    }
-    
-    fn load_document(&self, _filename: &str) -> FileOperationResult<String> {
-        // Desktop uses application state for loading
-        Err(anyhow::anyhow!("Desktop platform loads through application state"))
-    }
-    
-    fn delete_document(&self, _filename: &str) -> FileOperationResult<()> {
-        // Desktop uses filesystem directly through application state
-        Err(anyhow::anyhow!("Desktop platform deletes through filesystem"))
-    }
-    
-    fn get_saved_documents(&self) -> FileOperationResult<Vec<String>> {
-        // Desktop doesn't need a saved documents list
-        Ok(vec![])
-    }
-    
-    fn get_file_size(&self, _filename: &str) -> usize {
-        // Desktop gets file size through filesystem
-        0
-    }
-    
-    fn show_open_dialog(&self) -> Option<PathBuf> {
-        show_open_dialog_impl()
-    }
-    
-    fn show_save_dialog(&self) -> Option<PathBuf> {
-        show_save_dialog_impl()
-    }
-    
-    fn share_document(&self, content: &str) {
-        println!("Desktop: Would share document ({} chars)", content.len());
-    }
-}
-
-/// Platform-specific file operations implementation
-pub enum PlatformFileOperations {
-    Web(WebFileOperations),
-    Mobile(MobileFileOperations),
-    Desktop(DesktopFileOperations),
-}
-
-impl FileOperations for PlatformFileOperations {
-    fn save_document(&self, content: &str, filename: &str) -> FileOperationResult<()> {
-        match self {
-            PlatformFileOperations::Web(ops) => ops.save_document(content, filename),
-            PlatformFileOperations::Mobile(ops) => ops.save_document(content, filename),
-            PlatformFileOperations::Desktop(ops) => ops.save_document(content, filename),
-        }
-    }
-    
-    fn load_document(&self, filename: &str) -> FileOperationResult<String> {
-        match self {
-            PlatformFileOperations::Web(ops) => ops.load_document(filename),
-            PlatformFileOperations::Mobile(ops) => ops.load_document(filename),
-            PlatformFileOperations::Desktop(ops) => ops.load_document(filename),
-        }
-    }
-    
-    fn delete_document(&self, filename: &str) -> FileOperationResult<()> {
-        match self {
-            PlatformFileOperations::Web(ops) => ops.delete_document(filename),
-            PlatformFileOperations::Mobile(ops) => ops.delete_document(filename),
-            PlatformFileOperations::Desktop(ops) => ops.delete_document(filename),
-        }
-    }
-    
-    fn get_saved_documents(&self) -> FileOperationResult<Vec<String>> {
-        match self {
-            PlatformFileOperations::Web(ops) => ops.get_saved_documents(),
-            PlatformFileOperations::Mobile(ops) => ops.get_saved_documents(),
-            PlatformFileOperations::Desktop(ops) => ops.get_saved_documents(),
-        }
-    }
-    
-    fn get_file_size(&self, filename: &str) -> usize {
-        match self {
-            PlatformFileOperations::Web(ops) => ops.get_file_size(filename),
-            PlatformFileOperations::Mobile(ops) => ops.get_file_size(filename),
-            PlatformFileOperations::Desktop(ops) => ops.get_file_size(filename),
-        }
-    }
-    
-    fn show_open_dialog(&self) -> Option<PathBuf> {
-        match self {
-            PlatformFileOperations::Web(ops) => ops.show_open_dialog(),
-            PlatformFileOperations::Mobile(ops) => ops.show_open_dialog(),
-            PlatformFileOperations::Desktop(ops) => ops.show_open_dialog(),
-        }
-    }
-    
-    fn show_save_dialog(&self) -> Option<PathBuf> {
-        match self {
-            PlatformFileOperations::Web(ops) => ops.show_save_dialog(),
-            PlatformFileOperations::Mobile(ops) => ops.show_save_dialog(),
-            PlatformFileOperations::Desktop(ops) => ops.show_save_dialog(),
-        }
-    }
-    
-    fn share_document(&self, content: &str) {
-        match self {
-            PlatformFileOperations::Web(ops) => ops.share_document(content),
-            PlatformFileOperations::Mobile(ops) => ops.share_document(content),
-            PlatformFileOperations::Desktop(ops) => ops.share_document(content),
-        }
-    }
-}
-
-/// Get the appropriate file operations implementation for the current platform
-pub fn get_file_operations() -> PlatformFileOperations {
-    if cfg!(target_arch = "wasm32") {
-        PlatformFileOperations::Web(WebFileOperations)
-    } else if cfg!(feature = "mobile") {
-        PlatformFileOperations::Mobile(MobileFileOperations)
-    } else {
-        PlatformFileOperations::Desktop(DesktopFileOperations)
-    }
+/// Get the unified file operations implementation
+pub fn get_file_operations() -> UnifiedFileOperations {
+    UnifiedFileOperations
 }
 
 // Platform-specific implementation functions

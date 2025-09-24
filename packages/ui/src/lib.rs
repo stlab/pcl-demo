@@ -9,10 +9,7 @@ pub use platform::{
     get_file_operations, 
     FileOperations, 
     FileOperationResult,
-    PlatformFileOperations,
-    WebFileOperations,
-    MobileFileOperations,
-    DesktopFileOperations
+    UnifiedFileOperations
 };
 
 // Platform-specific modules - now available on all platforms for better rust-analyzer support
