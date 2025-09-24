@@ -3,6 +3,9 @@
 //! This module factors out cfg-dependent code to improve rust-analyzer support.
 
 use dioxus::desktop::muda::accelerator::{Accelerator, Modifiers, Code};
+use dioxus::desktop::muda::{Menu, MenuItem, PredefinedMenuItem, Submenu, MenuId};
+use rfd::FileDialog;
+
 
 /// Platform-specific modifier key configuration
 pub struct PlatformModifiers {
@@ -56,8 +59,6 @@ pub struct PlatformDialogs;
 impl PlatformDialogs {
     /// Show an open file dialog and return the selected path
     pub fn show_open_dialog() -> Option<std::path::PathBuf> {
-        use rfd::FileDialog;
-        
         FileDialog::new()
             .add_filter("JSON Documents", &["json"])
             .add_filter("All Files", &["*"])
@@ -67,8 +68,6 @@ impl PlatformDialogs {
     
     /// Show a save file dialog and return the selected path
     pub fn show_save_dialog() -> Option<std::path::PathBuf> {
-        use rfd::FileDialog;
-        
         FileDialog::new()
             .add_filter("JSON Documents", &["json"])
             .add_filter("All Files", &["*"])
@@ -84,7 +83,6 @@ pub struct PlatformMenu;
 impl PlatformMenu {
     /// Create the application menu bar with platform-appropriate structure
     pub fn create_menu_bar() -> dioxus::desktop::muda::Menu {
-        use dioxus::desktop::muda::{Menu, MenuItem, PredefinedMenuItem, Submenu, MenuId};
         
         let menu_bar = Menu::new();
         let modifiers = PlatformModifiers::new();
@@ -115,7 +113,6 @@ impl PlatformMenu {
 fn add_app_menu_if_needed(menu_bar: &dioxus::desktop::muda::Menu) {
     #[cfg(target_os = "macos")]
     {
-        use dioxus::desktop::muda::Submenu;
         let app_menu = Submenu::new("CodeLess", true);
         menu_bar.append(&app_menu).unwrap();
     }
@@ -134,6 +131,5 @@ fn append_menu_item(
     text: &str, 
     accelerator: Option<Accelerator>
 ) {
-    use dioxus::desktop::muda::{MenuItem, MenuId};
     submenu.append(&MenuItem::with_id(MenuId::new(id), text, true, accelerator)).unwrap();
 }
