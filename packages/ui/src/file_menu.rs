@@ -18,20 +18,16 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
     let mut state = application_state;
     let mut file_input_ref = use_signal(|| None::<web_sys::HtmlInputElement>);
     
-    // Handler for creating a new document
     let handle_new = move |_| {
         state.write().new_document();
     };
     
-    // Handler for opening a file
     let handle_open = move |_| {
         if let Some(input) = file_input_ref.read().as_ref() {
             input.click();
         }
-        // Note: On non-web platforms, this will be a no-op since the input element won't be populated
     };
     
-    // Handler for saving the current document
     let handle_save = move |_| {
         let current_state = state.read();
         if let Ok(json_content) = serde_json::to_string_pretty(&current_state.the_only_document) {
@@ -44,7 +40,6 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
         }
     };
     
-    // Handler for save as
     let handle_save_as = move |_| {
         let current_state = state.read();
         if let Ok(json_content) = serde_json::to_string_pretty(&current_state.the_only_document) {
@@ -68,7 +63,6 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
                         "New"
                     }
                     
-                    // Hidden file input for opening files
                     input {
                         r#type: "file",
                         accept: ".json",
@@ -91,7 +85,6 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
                                                 let file_reader = web_sys::FileReader::new().unwrap();
                                                 let mut state_clone = state.clone();
                                                 
-                                                // Use Rc to share the file_reader between the closure and the setup
                                                 let file_reader_rc = Rc::new(file_reader);
                                                 let file_reader_for_closure = file_reader_rc.clone();
                                                 
@@ -100,7 +93,6 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
                                                         if let Some(text) = result.as_string() {
                                                             web_sys::console::log_1(&format!("File content read: {} chars", text.len()).into());
                                                             
-                                                            // Try to parse the content as JSON
                                                             match serde_json::from_str::<crate::Document>(&text) {
                                                                 Ok(document) => {
                                                                     web_sys::console::log_1(&"Successfully parsed document".into());
@@ -159,13 +151,11 @@ fn download_file(content: &str, filename: &str) {
     let window = window().unwrap();
     let document = window.document().unwrap();
     
-    // Create a blob with the content
     let array = js_sys::Array::new();
     array.push(&JsValue::from_str(content));
     
     let blob = Blob::new_with_str_sequence(&array).unwrap();
     
-    // Create a download link
     let url = Url::create_object_url_with_blob(&blob).unwrap();
     let anchor: HtmlAnchorElement = document
         .create_element("a")

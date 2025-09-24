@@ -17,14 +17,11 @@ pub type FileOperationResult<T> = anyhow::Result<T>;
 /// Save a document using the appropriate platform method
 pub fn save_document(content: &str, filename: &str) -> FileOperationResult<()> {
     if cfg!(target_arch = "wasm32") {
-        // Web platform uses browser download
         download_file(content, filename);
         Ok(())
     } else if cfg!(feature = "mobile") {
-        // Mobile platform uses persistent storage
         save_document_to_storage(content, filename)
     } else {
-        // Desktop should never call this function
         unreachable!("save_document should not be called on this platform")
     }
 }
@@ -32,11 +29,9 @@ pub fn save_document(content: &str, filename: &str) -> FileOperationResult<()> {
 /// Load a document using the appropriate platform method
 pub fn load_document(filename: &str) -> FileOperationResult<String> {
     if cfg!(feature = "mobile") {
-        // Mobile platform loads from persistent storage
         load_document_from_storage(filename)
             .ok_or_else(|| anyhow::anyhow!("Failed to load document: {}", filename))
     } else {
-        // Web and desktop should never call this function
         unreachable!("load_document should not be called on this platform")
     }
 }
@@ -44,42 +39,30 @@ pub fn load_document(filename: &str) -> FileOperationResult<String> {
 /// Delete a document using the appropriate platform method
 pub fn delete_document(filename: &str) -> FileOperationResult<()> {
     if cfg!(feature = "mobile") {
-        // Mobile platform deletes from persistent storage
         if delete_document_from_storage(filename) {
             Ok(())
         } else {
             Err(anyhow::anyhow!("Failed to delete document: {}", filename))
         }
     } else {
-        // Web and desktop should never call this function
         unreachable!("delete_document should not be called on this platform")
     }
 }
 
 /// Get list of saved documents using the appropriate platform method
 pub fn get_saved_documents() -> FileOperationResult<Vec<String>> {
-    if cfg!(target_arch = "wasm32") {
-        // Web platform doesn't have persistent storage for file listing
-        Ok(vec![])
-    } else if cfg!(feature = "mobile") {
-        // Mobile platform lists files from persistent storage
+    if cfg!(feature = "mobile") {
         Ok(get_saved_files())
     } else {
-        // Desktop doesn't need a saved documents list
         Ok(vec![])
     }
 }
 
 /// Get file size using the appropriate platform method
 pub fn get_file_size(filename: &str) -> usize {
-    if cfg!(target_arch = "wasm32") {
-        // Web platform doesn't track file sizes
-        0
-    } else if cfg!(feature = "mobile") {
-        // Mobile platform gets size from persistent storage
+    if cfg!(feature = "mobile") {
         get_file_size_impl(filename)
     } else {
-        // Desktop gets file size through filesystem
         0
     }
 }
@@ -87,10 +70,8 @@ pub fn get_file_size(filename: &str) -> usize {
 /// Show platform-appropriate file open dialog
 pub fn show_open_dialog() -> Option<PathBuf> {
     if cfg!(not(any(target_arch = "wasm32", feature = "mobile"))) {
-        // Desktop uses native file dialogs
         show_open_dialog_impl()
     } else {
-        // Web and mobile should never call this function
         unreachable!("show_open_dialog should not be called on this platform")
     }
 }
@@ -98,10 +79,8 @@ pub fn show_open_dialog() -> Option<PathBuf> {
 /// Show platform-appropriate file save dialog
 pub fn show_save_dialog() -> Option<PathBuf> {
     if cfg!(not(any(target_arch = "wasm32", feature = "mobile"))) {
-        // Desktop uses native file dialogs
         show_save_dialog_impl()
     } else {
-        // Web and mobile should never call this function
         unreachable!("show_save_dialog should not be called on this platform")
     }
 }
@@ -109,13 +88,10 @@ pub fn show_save_dialog() -> Option<PathBuf> {
 /// Share document using platform-appropriate method
 pub fn share_document(content: &str) {
     if cfg!(target_arch = "wasm32") {
-        // Web platform could use Web Share API in the future
         println!("Web: Would share document ({} chars)", content.len());
     } else if cfg!(feature = "mobile") {
-        // Mobile platform uses platform-specific sharing
         share_document_mobile(content);
     } else {
-        // Desktop sharing
         println!("Desktop: Would share document ({} chars)", content.len());
     }
 }
@@ -123,18 +99,15 @@ pub fn share_document(content: &str) {
 // Platform-specific implementation functions
 
 fn download_file(content: &str, filename: &str) {
-    // On web platforms, this will trigger a download
-    // On non-web platforms, the web APIs will be no-ops
     let window = window().unwrap();
     let document = window.document().unwrap();
     
-    // Create a blob with the content
     let array = js_sys::Array::new();
     array.push(&JsValue::from_str(content));
-    
+
+    // Synthesize a link to the content and (programmatically) click
+    // it.
     let blob = Blob::new_with_str_sequence(&array).unwrap();
-    
-    // Create a download link
     let url = Url::create_object_url_with_blob(&blob).unwrap();
     let anchor: HtmlAnchorElement = document
         .create_element("a")
@@ -146,13 +119,9 @@ fn download_file(content: &str, filename: &str) {
     anchor.set_download(filename);
     let anchor_element: &web_sys::Element = anchor.as_ref();
     anchor_element.set_attribute("style", "display: none").unwrap();
-    
-    // Append, click, and remove
     document.body().unwrap().append_child(&anchor).unwrap();
     anchor.click();
     document.body().unwrap().remove_child(&anchor).unwrap();
-    
-    // Clean up the object URL
     Url::revoke_object_url(&url).unwrap();
 }
 
@@ -169,7 +138,6 @@ pub fn save_document_to_storage(content: &str, filename: &str) -> FileOperationR
     
     println!("Storage: Successfully saved {} to {:?}", filename, file_path);
     
-    // Verify the file was actually written
     if let Ok(metadata) = fs::metadata(&file_path) {
         println!("Storage: File size on disk: {} bytes", metadata.len());
     }
@@ -326,7 +294,6 @@ pub fn get_storage_directory() -> PathBuf {
             }
         }
     } else {
-        // Desktop/other platforms
         let mut storage_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
         storage_dir.push("mobile_documents");
         
@@ -352,7 +319,6 @@ pub fn initialize_sample_files() {
   "html": "<svg viewBox=\"0 0 70 70\" xmlns=\"http://www.w3.org/2000/svg\">\n<rect x=\"15\" y=\"15\" width=\"40\" height=\"40\" fill=\"lightcoral\" stroke=\"darkred\" stroke-width=\"2\"/>\n<text x=\"35\" y=\"40\" text-anchor=\"middle\" font-size=\"8\">Square Doc</text>\n</svg>"
 }"#;
     
-    // Create sample files
     let _ = save_document_to_storage(sample_circle, "sample_circle.json");
     let _ = save_document_to_storage(sample_square, "sample_square.json");
     
@@ -371,12 +337,10 @@ pub fn share_document_mobile(content: &str) {
 
 fn show_open_dialog_impl() -> Option<PathBuf> {
     // Desktop file dialog functionality is handled in the desktop package
-    // Web and mobile platforms use their own UI for file selection
     None
 }
 
 fn show_save_dialog_impl() -> Option<PathBuf> {
     // Desktop file dialog functionality is handled in the desktop package
-    // Web and mobile platforms use their own UI for file saving
     None
 }

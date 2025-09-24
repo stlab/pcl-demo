@@ -19,20 +19,17 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
     let mut filename_input = use_signal(|| String::new());
     let mut saved_files = use_signal(|| get_saved_files());
     
-    // Handler for creating a new document
     let handle_new = move |_| {
         state.write().new_document();
         menu_open.set(false);
     };
     
-    // Handler for opening the file list
     let handle_open = move |_| {
-        saved_files.set(get_saved_files()); // Refresh file list
+        saved_files.set(get_saved_files());
         file_list_open.set(true);
         menu_open.set(false);
     };
     
-    // Handler for saving the current document
     let handle_save = move |_| {
         let current_state = state.read();
         if let Ok(json_content) = serde_json::to_string_pretty(&current_state.the_only_document) {
@@ -50,9 +47,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
         menu_open.set(false);
     };
     
-    // Handler for save as (with user input for filename)
     let handle_save_as = move |_| {
-        // Get current filename for default
         let current_name = {
             let current_state = state.read();
             current_state.current_file_path
@@ -63,13 +58,11 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                 .replace(".json", "")
         };
         
-        // Set default filename and show prompt
         filename_input.set(current_name);
         filename_prompt_open.set(true);
         menu_open.set(false);
     };
     
-    // Handler for sharing the document (mobile-specific feature)
     let handle_share = move |_| {
         let current_state = state.read();
         if let Ok(json_content) = serde_json::to_string_pretty(&current_state.the_only_document) {
@@ -78,28 +71,23 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
         menu_open.set(false);
     };
     
-    // Toggle menu visibility
     let toggle_menu = move |_| {
         let current_state = *menu_open.read();
         menu_open.set(!current_state);
     };
     
-    // Close menu when clicking outside
     let close_menu = move |_| {
         menu_open.set(false);
     };
     
-    // Close file list
     let close_file_list = move |_| {
         file_list_open.set(false);
     };
     
-    // Close filename prompt
     let close_filename_prompt = move |_| {
         filename_prompt_open.set(false);
     };
     
-    // Save with entered filename
     let save_with_filename = move |_| {
         let filename = filename_input.read().clone();
         if !filename.trim().is_empty() {
