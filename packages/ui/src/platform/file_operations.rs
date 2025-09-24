@@ -168,16 +168,88 @@ impl FileOperations for DesktopFileOperations {
     }
 }
 
+/// Platform-specific file operations implementation
+pub enum PlatformFileOperations {
+    Web(WebFileOperations),
+    Mobile(MobileFileOperations),
+    Desktop(DesktopFileOperations),
+}
+
+impl FileOperations for PlatformFileOperations {
+    fn save_document(&self, content: &str, filename: &str) -> FileOperationResult<()> {
+        match self {
+            PlatformFileOperations::Web(ops) => ops.save_document(content, filename),
+            PlatformFileOperations::Mobile(ops) => ops.save_document(content, filename),
+            PlatformFileOperations::Desktop(ops) => ops.save_document(content, filename),
+        }
+    }
+    
+    fn load_document(&self, filename: &str) -> FileOperationResult<String> {
+        match self {
+            PlatformFileOperations::Web(ops) => ops.load_document(filename),
+            PlatformFileOperations::Mobile(ops) => ops.load_document(filename),
+            PlatformFileOperations::Desktop(ops) => ops.load_document(filename),
+        }
+    }
+    
+    fn delete_document(&self, filename: &str) -> FileOperationResult<()> {
+        match self {
+            PlatformFileOperations::Web(ops) => ops.delete_document(filename),
+            PlatformFileOperations::Mobile(ops) => ops.delete_document(filename),
+            PlatformFileOperations::Desktop(ops) => ops.delete_document(filename),
+        }
+    }
+    
+    fn get_saved_documents(&self) -> FileOperationResult<Vec<String>> {
+        match self {
+            PlatformFileOperations::Web(ops) => ops.get_saved_documents(),
+            PlatformFileOperations::Mobile(ops) => ops.get_saved_documents(),
+            PlatformFileOperations::Desktop(ops) => ops.get_saved_documents(),
+        }
+    }
+    
+    fn get_file_size(&self, filename: &str) -> usize {
+        match self {
+            PlatformFileOperations::Web(ops) => ops.get_file_size(filename),
+            PlatformFileOperations::Mobile(ops) => ops.get_file_size(filename),
+            PlatformFileOperations::Desktop(ops) => ops.get_file_size(filename),
+        }
+    }
+    
+    fn show_open_dialog(&self) -> Option<PathBuf> {
+        match self {
+            PlatformFileOperations::Web(ops) => ops.show_open_dialog(),
+            PlatformFileOperations::Mobile(ops) => ops.show_open_dialog(),
+            PlatformFileOperations::Desktop(ops) => ops.show_open_dialog(),
+        }
+    }
+    
+    fn show_save_dialog(&self) -> Option<PathBuf> {
+        match self {
+            PlatformFileOperations::Web(ops) => ops.show_save_dialog(),
+            PlatformFileOperations::Mobile(ops) => ops.show_save_dialog(),
+            PlatformFileOperations::Desktop(ops) => ops.show_save_dialog(),
+        }
+    }
+    
+    fn share_document(&self, content: &str) {
+        match self {
+            PlatformFileOperations::Web(ops) => ops.share_document(content),
+            PlatformFileOperations::Mobile(ops) => ops.share_document(content),
+            PlatformFileOperations::Desktop(ops) => ops.share_document(content),
+        }
+    }
+}
+
 /// Get the appropriate file operations implementation for the current platform
-pub fn get_file_operations() -> Box<dyn FileOperations> {
-    #[cfg(target_arch = "wasm32")]
-    return Box::new(WebFileOperations);
-    
-    #[cfg(feature = "mobile")]
-    return Box::new(MobileFileOperations);
-    
-    #[cfg(not(any(target_arch = "wasm32", feature = "mobile")))]
-    return Box::new(DesktopFileOperations);
+pub fn get_file_operations() -> PlatformFileOperations {
+    if cfg!(target_arch = "wasm32") {
+        PlatformFileOperations::Web(WebFileOperations)
+    } else if cfg!(feature = "mobile") {
+        PlatformFileOperations::Mobile(MobileFileOperations)
+    } else {
+        PlatformFileOperations::Desktop(DesktopFileOperations)
+    }
 }
 
 // Platform-specific implementation functions

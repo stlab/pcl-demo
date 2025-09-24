@@ -46,11 +46,11 @@ impl Default for PlatformModifiers {
 
 /// Get the base modifier key for the current platform
 fn get_base_modifier() -> Modifiers {
-    #[cfg(target_os = "macos")]
-    return Modifiers::META;
-    
-    #[cfg(not(target_os = "macos"))]
-    return Modifiers::CONTROL;
+    if cfg!(target_os = "macos") {
+        Modifiers::META
+    } else {
+        Modifiers::CONTROL
+    }
 }
 
 /// Platform-specific file dialog operations
@@ -111,17 +111,11 @@ impl PlatformMenu {
 
 /// Add application menu on macOS to ensure File menu shows correctly
 fn add_app_menu_if_needed(menu_bar: &dioxus::desktop::muda::Menu) {
-    #[cfg(target_os = "macos")]
-    {
+    if cfg!(target_os = "macos") {
         let app_menu = Submenu::new("CodeLess", true);
         menu_bar.append(&app_menu).unwrap();
     }
-    
-    #[cfg(not(target_os = "macos"))]
-    {
-        // No app menu needed on other platforms
-        let _ = menu_bar; // Suppress unused parameter warning
-    }
+    // No app menu needed on other platforms
 }
 
 /// Append a menu item with the given parameters
