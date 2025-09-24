@@ -25,31 +25,25 @@ pub fn save_document(content: &str, filename: &str) -> FileOperationResult<()> {
         save_document_to_storage(content, filename)
     } else {
         // Desktop should never call this function
-        unreachable!("save_document should not be called on desktop platform")
+        unreachable!("save_document should not be called on this platform")
     }
 }
 
 /// Load a document using the appropriate platform method
 pub fn load_document(filename: &str) -> FileOperationResult<String> {
-    if cfg!(target_arch = "wasm32") {
-        // Web should never call this function - uses file input element instead
-        unreachable!("load_document should not be called on web platform")
-    } else if cfg!(feature = "mobile") {
+    if cfg!(feature = "mobile") {
         // Mobile platform loads from persistent storage
         load_document_from_storage(filename)
             .ok_or_else(|| anyhow::anyhow!("Failed to load document: {}", filename))
     } else {
-        // Desktop should never call this function
-        unreachable!("load_document should not be called on desktop platform")
+        // Web and desktop should never call this function
+        unreachable!("load_document should not be called on this platform")
     }
 }
 
 /// Delete a document using the appropriate platform method
 pub fn delete_document(filename: &str) -> FileOperationResult<()> {
-    if cfg!(target_arch = "wasm32") {
-        // Web should never call this function
-        unreachable!("delete_document should not be called on web platform")
-    } else if cfg!(feature = "mobile") {
+    if cfg!(feature = "mobile") {
         // Mobile platform deletes from persistent storage
         if delete_document_from_storage(filename) {
             Ok(())
@@ -57,8 +51,8 @@ pub fn delete_document(filename: &str) -> FileOperationResult<()> {
             Err(anyhow::anyhow!("Failed to delete document: {}", filename))
         }
     } else {
-        // Desktop should never call this function
-        unreachable!("delete_document should not be called on desktop platform")
+        // Web and desktop should never call this function
+        unreachable!("delete_document should not be called on this platform")
     }
 }
 
@@ -92,29 +86,23 @@ pub fn get_file_size(filename: &str) -> usize {
 
 /// Show platform-appropriate file open dialog
 pub fn show_open_dialog() -> Option<PathBuf> {
-    if cfg!(target_arch = "wasm32") {
-        // Web should never call this - uses file input element instead
-        unreachable!("show_open_dialog should not be called on web platform")
-    } else if cfg!(feature = "mobile") {
-        // Mobile should never call this - uses its own file list UI instead
-        unreachable!("show_open_dialog should not be called on mobile platform")
-    } else {
+    if cfg!(not(any(target_arch = "wasm32", feature = "mobile"))) {
         // Desktop uses native file dialogs
         show_open_dialog_impl()
+    } else {
+        // Web and mobile should never call this function
+        unreachable!("show_open_dialog should not be called on this platform")
     }
 }
 
 /// Show platform-appropriate file save dialog
 pub fn show_save_dialog() -> Option<PathBuf> {
-    if cfg!(target_arch = "wasm32") {
-        // Web should never call this - uses browser download instead
-        unreachable!("show_save_dialog should not be called on web platform")
-    } else if cfg!(feature = "mobile") {
-        // Mobile should never call this - uses its own filename input UI instead
-        unreachable!("show_save_dialog should not be called on mobile platform")
-    } else {
+    if cfg!(not(any(target_arch = "wasm32", feature = "mobile"))) {
         // Desktop uses native file dialogs
         show_save_dialog_impl()
+    } else {
+        // Web and mobile should never call this function
+        unreachable!("show_save_dialog should not be called on this platform")
     }
 }
 
