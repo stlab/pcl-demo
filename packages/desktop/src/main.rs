@@ -1,4 +1,4 @@
-use dioxus::{desktop::{WindowBuilder, Config, use_muda_event_handler, muda::MenuEvent}, prelude::*, LaunchBuilder};
+use dioxus::{desktop::{WindowBuilder, Config, use_muda_event_handler}, prelude::*, LaunchBuilder};
 
 use ui::{ApplicationState, DocumentUI};
 
@@ -7,6 +7,14 @@ use platform::{PlatformDialogs, PlatformMenu};
 
 /// The top-level stylesheet for the application.
 const MAIN_CSS: Asset = asset!("/assets/main.css");
+
+/// Helper function to handle file operation results with consistent error reporting
+fn handle_file_result<T, E: std::fmt::Display>(result: Result<T, E>, operation: &str) {
+    match result {
+        Ok(_) => {},
+        Err(e) => eprintln!("Failed to {}: {}", operation, e),
+    }
+}
 
 /// Runs the application.
 fn main() {
@@ -39,34 +47,22 @@ fn AppUI() -> Element {
             }
             "open" => {
                 if let Some(file_path) = PlatformDialogs::show_open_dialog() {
-                    match state.write().load_document(file_path.clone()) {
-                        Ok(()) => {},
-                        Err(e) => eprintln!("Failed to open file: {}", e),
-                    }
+                    handle_file_result(state.write().load_document(file_path.clone()), "open file");
                 }
             }
             "save" => {
                 let can_save = state.read().current_file_path.is_some();
                 if can_save {
-                    match state.read().save_document() {
-                        Ok(()) => {},
-                        Err(e) => eprintln!("Failed to save file: {}", e),
-                    }
+                    handle_file_result(state.read().save_document(), "save file");
                 } else {
                     if let Some(file_path) = PlatformDialogs::show_save_dialog() {
-                        match state.write().save_document_as(file_path.clone()) {
-                            Ok(()) => {},
-                            Err(e) => eprintln!("Failed to save file: {}", e),
-                        }
+                        handle_file_result(state.write().save_document_as(file_path.clone()), "save file");
                     }
                 }
             }
             "save_as" => {
                 if let Some(file_path) = PlatformDialogs::show_save_dialog() {
-                    match state.write().save_document_as(file_path.clone()) {
-                        Ok(()) => {},
-                        Err(e) => eprintln!("Failed to save file: {}", e),
-                    }
+                    handle_file_result(state.write().save_document_as(file_path.clone()), "save file");
                 }
             }
             _ => { unreachable!("unknown menu item {:?}", event.id.as_ref()) }

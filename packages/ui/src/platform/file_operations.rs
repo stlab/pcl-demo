@@ -57,6 +57,44 @@ pub fn delete_document(filename: &str) -> FileOperationResult<()> {
 
 
 
+// Helper functions for common operations
+
+/// Get the full path for a file in the storage directory
+fn get_file_path(filename: &str) -> PathBuf {
+    let storage_dir = get_storage_directory();
+    storage_dir.join(filename)
+}
+
+/// Helper to collect JSON files from a directory
+fn collect_json_files_from_dir(storage_dir: &PathBuf) -> Vec<String> {
+    let mut files = Vec::new();
+    
+    if let Ok(entries) = fs::read_dir(storage_dir) {
+        for entry in entries {
+            if let Ok(entry) = entry {
+                let path = entry.path();
+                if let Some(filename) = path.file_name() {
+                    if let Some(filename_str) = filename.to_str() {
+                        if filename_str.ends_with(".json") {
+                            files.push(filename_str.to_string());
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    files
+}
+
+/// Helper to create a storage directory with fallback
+fn create_storage_dir_with_fallback(preferred_dir: PathBuf, fallback_dir: PathBuf) -> PathBuf {
+    match fs::create_dir_all(&preferred_dir) {
+        Ok(_) => preferred_dir,
+        Err(_) => fallback_dir,
+    }
+}
+
 // Platform-specific implementation functions
 
 fn download_file(content: &str, filename: &str) {
@@ -87,8 +125,7 @@ fn download_file(content: &str, filename: &str) {
 }
 
 pub fn save_document_to_storage(content: &str, filename: &str) -> FileOperationResult<()> {
-    let storage_dir = get_storage_directory();
-    let file_path = storage_dir.join(filename);
+    let file_path = get_file_path(filename);
     
     fs::write(&file_path, content).map_err(|e| {
         anyhow!("Failed to save {} to {:?}: {}", filename, file_path, e)
@@ -98,8 +135,7 @@ pub fn save_document_to_storage(content: &str, filename: &str) -> FileOperationR
 }
 
 pub fn load_document_from_storage(filename: &str) -> Option<String> {
-    let storage_dir = get_storage_directory();
-    let file_path = storage_dir.join(filename);
+    let file_path = get_file_path(filename);
     
     match fs::read_to_string(&file_path) {
         Ok(content) => Some(content),
@@ -108,8 +144,7 @@ pub fn load_document_from_storage(filename: &str) -> Option<String> {
 }
 
 pub fn delete_document_from_storage(filename: &str) -> bool {
-    let storage_dir = get_storage_directory();
-    let file_path = storage_dir.join(filename);
+    let file_path = get_file_path(filename);
     
     match fs::remove_file(&file_path) {
         Ok(_) => true,
@@ -119,44 +154,11 @@ pub fn delete_document_from_storage(filename: &str) -> bool {
 
 pub fn get_saved_files() -> Vec<String> {
     let storage_dir = get_storage_directory();
-    let mut files = Vec::new();
-    
-    match fs::read_dir(&storage_dir) {
-        Ok(entries) => {
-            for entry in entries {
-                if let Ok(entry) = entry {
-                    let path = entry.path();
-                    if let Some(filename) = path.file_name() {
-                        if let Some(filename_str) = filename.to_str() {
-                            if filename_str.ends_with(".json") {
-                                files.push(filename_str.to_string());
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        Err(_) => {
-            return vec![];
-        }
-    }
+    let mut files = collect_json_files_from_dir(&storage_dir);
     
     if files.is_empty() {
         initialize_sample_files();
-        if let Ok(entries) = fs::read_dir(&storage_dir) {
-            for entry in entries {
-                if let Ok(entry) = entry {
-                    let path = entry.path();
-                    if let Some(filename) = path.file_name() {
-                        if let Some(filename_str) = filename.to_str() {
-                            if filename_str.ends_with(".json") {
-                                files.push(filename_str.to_string());
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        files = collect_json_files_from_dir(&storage_dir);
     }
     
     files.sort();
@@ -164,8 +166,7 @@ pub fn get_saved_files() -> Vec<String> {
 }
 
 pub fn get_file_size_impl(filename: &str) -> usize {
-    let storage_dir = get_storage_directory();
-    let file_path = storage_dir.join(filename);
+    let file_path = get_file_path(filename);
     
     match fs::metadata(&file_path) {
         Ok(metadata) => metadata.len() as usize,
@@ -175,7 +176,6 @@ pub fn get_file_size_impl(filename: &str) -> usize {
 
 pub fn get_storage_directory() -> PathBuf {
     if cfg!(target_os = "ios") {
-        // On iOS, try to use the app's Documents directory
         let storage_dir = if let Some(home) = std::env::var_os("HOME") {
             let mut dir = PathBuf::from(home);
             dir.push("Documents");
@@ -186,13 +186,8 @@ pub fn get_storage_directory() -> PathBuf {
             dir.push("mobile_documents");
             dir
         };
-        
-        match fs::create_dir_all(&storage_dir) {
-            Ok(_) => storage_dir,
-            Err(_) => std::env::temp_dir(),
-        }
+        create_storage_dir_with_fallback(storage_dir, std::env::temp_dir())
     } else if cfg!(target_os = "android") {
-        // On Android, try to use internal storage
         let storage_dir = if let Ok(current) = std::env::current_dir() {
             let mut dir = current;
             dir.push("mobile_documents");
@@ -202,19 +197,12 @@ pub fn get_storage_directory() -> PathBuf {
             dir.push("mobile_documents");
             dir
         };
-        
-        match fs::create_dir_all(&storage_dir) {
-            Ok(_) => storage_dir,
-            Err(_) => std::env::temp_dir(),
-        }
+        create_storage_dir_with_fallback(storage_dir, std::env::temp_dir())
     } else {
         let mut storage_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
         storage_dir.push("mobile_documents");
-        
-        match fs::create_dir_all(&storage_dir) {
-            Ok(_) => storage_dir,
-            Err(_) => std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
-        }
+        let fallback = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        create_storage_dir_with_fallback(storage_dir, fallback)
     }
 }
 
