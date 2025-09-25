@@ -3,7 +3,7 @@
 //! This module provides a unified interface for file operations across different platforms,
 //! factoring out cfg-dependent code to improve rust-analyzer support.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::fs;
 
 // Web API imports (available on all platforms for development ease)
@@ -66,7 +66,7 @@ fn get_file_path(filename: &str) -> PathBuf {
 }
 
 /// Helper to collect JSON files from a directory
-fn collect_json_files_from_dir(storage_dir: &PathBuf) -> Vec<String> {
+fn collect_json_files_from_dir(storage_dir: &Path) -> Vec<String> {
     let mut files = Vec::new();
     
     if let Ok(entries) = fs::read_dir(storage_dir) {
@@ -88,9 +88,9 @@ fn collect_json_files_from_dir(storage_dir: &PathBuf) -> Vec<String> {
 }
 
 /// Helper to create a storage directory with fallback
-fn create_storage_dir_with_fallback(preferred_dir: PathBuf, fallback_dir: PathBuf) -> PathBuf {
-    match fs::create_dir_all(&preferred_dir) {
-        Ok(_) => preferred_dir,
+fn create_storage_dir_with_fallback(preferred_dir: &Path, fallback_dir: PathBuf) -> PathBuf {
+    match fs::create_dir_all(preferred_dir) {
+        Ok(_) => preferred_dir.to_path_buf(),
         Err(_) => fallback_dir,
     }
 }
@@ -186,7 +186,7 @@ pub fn get_storage_directory() -> PathBuf {
             dir.push("mobile_documents");
             dir
         };
-        create_storage_dir_with_fallback(storage_dir, std::env::temp_dir())
+        create_storage_dir_with_fallback(&storage_dir, std::env::temp_dir())
     } else if cfg!(target_os = "android") {
         let storage_dir = if let Ok(current) = std::env::current_dir() {
             let mut dir = current;
@@ -197,12 +197,12 @@ pub fn get_storage_directory() -> PathBuf {
             dir.push("mobile_documents");
             dir
         };
-        create_storage_dir_with_fallback(storage_dir, std::env::temp_dir())
+        create_storage_dir_with_fallback(&storage_dir, std::env::temp_dir())
     } else {
         let mut storage_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
         storage_dir.push("mobile_documents");
         let fallback = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-        create_storage_dir_with_fallback(storage_dir, fallback)
+        create_storage_dir_with_fallback(&storage_dir, fallback)
     }
 }
 

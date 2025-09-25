@@ -47,7 +47,7 @@ fn AppUI() -> Element {
             }
             "open" => {
                 if let Some(file_path) = PlatformDialogs::show_open_dialog() {
-                    handle_file_result(state.write().load_document(file_path.clone()), "open file");
+                    handle_file_result(state.write().load_document(&file_path), "open file");
                 }
             }
             "save" => {
@@ -56,13 +56,13 @@ fn AppUI() -> Element {
                     handle_file_result(state.read().save_document(), "save file");
                 } else {
                     if let Some(file_path) = PlatformDialogs::show_save_dialog() {
-                        handle_file_result(state.write().save_document_as(file_path.clone()), "save file");
+                        handle_file_result(state.write().save_document_as(&file_path), "save file");
                     }
                 }
             }
             "save_as" => {
                 if let Some(file_path) = PlatformDialogs::show_save_dialog() {
-                    handle_file_result(state.write().save_document_as(file_path.clone()), "save file");
+                    handle_file_result(state.write().save_document_as(&file_path), "save file");
                 }
             }
             _ => { unreachable!("unknown menu item {:?}", event.id.as_ref()) }

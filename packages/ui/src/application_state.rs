@@ -1,5 +1,5 @@
 use crate::document::*;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use anyhow::bail;
 
 /// The state of the entire application.
@@ -31,9 +31,9 @@ impl ApplicationState {
     }
 
     /// Loads a document from the specified path
-    pub fn load_document(&mut self, path: PathBuf) -> anyhow::Result<()> {
-        self.the_only_document = Document::new_from_file(&path)?;
-        self.current_file_path = Some(path);
+    pub fn load_document(&mut self, path: &Path) -> anyhow::Result<()> {
+        self.the_only_document = Document::new_from_file(path)?;
+        self.current_file_path = Some(path.to_path_buf());
         Ok(())
     }
 
@@ -47,9 +47,9 @@ impl ApplicationState {
     }
 
     /// Saves the current document to a new path
-    pub fn save_document_as(&mut self, path: PathBuf) -> anyhow::Result<()> {
-        self.the_only_document.save_to_file(&path)?;
-        self.current_file_path = Some(path);
+    pub fn save_document_as(&mut self, path: &Path) -> anyhow::Result<()> {
+        self.the_only_document.save_to_file(path)?;
+        self.current_file_path = Some(path.to_path_buf());
         Ok(())
     }
 
