@@ -40,8 +40,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                 .unwrap_or("document.json");
             
             if let Ok(_) = save_document(&json_content, filename) {
-                saved_files.set(get_saved_files()); // Refresh file list
-                println!("Mobile: Saved {}", filename);
+                saved_files.set(get_saved_files());
             }
         }
         menu_open.set(false);
@@ -267,11 +266,8 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                                                         Ok(document) => {
                                                             local_state.write().the_only_document = document;
                                                             local_state.write().current_file_path = Some(std::path::PathBuf::from(&filename));
-                                                            println!("Mobile: Opened {}", filename);
                                                         }
-                                                        Err(e) => {
-                                                            println!("Mobile: Failed to parse {}: {}", filename, e);
-                                                        }
+                                                        Err(_) => {}
                                                     }
                                                 }
                                                 local_file_list_open.set(false);
@@ -294,8 +290,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                                             let mut local_saved_files = saved_files.clone();
                                             move |_| {
                                                 if let Ok(_) = delete_document(&filename) {
-                                                    local_saved_files.set(get_saved_files()); // Refresh file list
-                                                    println!("Mobile: Deleted {}", filename);
+                                                    local_saved_files.set(get_saved_files());
                                                 }
                                             }
                                         },
@@ -364,8 +359,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                                                         let mut app_state = state.write();
                                                         app_state.current_file_path = Some(std::path::PathBuf::from(&filename));
                                                     }
-                                                    saved_files.set(get_saved_files()); // Refresh file list
-                                                    println!("Mobile: Saved as {}", filename);
+                                                    saved_files.set(get_saved_files());
                                                 }
                                             }
                                         }

@@ -34,44 +34,38 @@ fn AppUI() -> Element {
     // Handle menu events
     dioxus::desktop::use_muda_event_handler(move |event| {
         let dioxus::desktop::muda::MenuEvent { id } = event;
-        println!("Menu event received with ID: '{}'", id.0);
         match id.0.as_str() {
             "new" => {
-                println!("Creating new document");
                 state.write().new_document();
             }
             "open" => {
-                println!("Opening file dialog");
                 if let Some(file_path) = PlatformDialogs::show_open_dialog() {
                     match state.write().load_document(file_path.clone()) {
-                        Ok(()) => println!("Successfully opened: {file_path:?}"),
+                        Ok(()) => {},
                         Err(e) => eprintln!("Failed to open file: {}", e),
                     }
                 }
             }
             "save" => {
-                println!("Saving document");
                 let can_save = state.read().current_file_path.is_some();
                 if can_save {
                     match state.read().save_document() {
-                        Ok(()) => println!("Document saved successfully"),
+                        Ok(()) => {},
                         Err(e) => eprintln!("Failed to save file: {}", e),
                     }
                 } else {
-                    // No current file path, show Save As dialog
                     if let Some(file_path) = PlatformDialogs::show_save_dialog() {
                         match state.write().save_document_as(file_path.clone()) {
-                            Ok(()) => println!("Document saved as: {:?}", file_path),
+                            Ok(()) => {},
                             Err(e) => eprintln!("Failed to save file: {}", e),
                         }
                     }
                 }
             }
             "save_as" => {
-                println!("Showing Save As dialog");
                 if let Some(file_path) = PlatformDialogs::show_save_dialog() {
                     match state.write().save_document_as(file_path.clone()) {
-                        Ok(()) => println!("Document saved as: {:?}", file_path),
+                        Ok(()) => {},
                         Err(e) => eprintln!("Failed to save file: {}", e),
                     }
                 }

@@ -86,18 +86,9 @@ pub fn save_document_to_storage(content: &str, filename: &str) -> FileOperationR
     let storage_dir = get_storage_directory();
     let file_path = storage_dir.join(filename);
     
-    println!("Storage: Attempting to save {} to {:?}", filename, file_path);
-    println!("Storage: Content length: {} bytes", content.len());
-    
     fs::write(&file_path, content).map_err(|e| {
         anyhow::anyhow!("Failed to save {} to {:?}: {}", filename, file_path, e)
     })?;
-    
-    println!("Storage: Successfully saved {} to {:?}", filename, file_path);
-    
-    if let Ok(metadata) = fs::metadata(&file_path) {
-        println!("Storage: File size on disk: {} bytes", metadata.len());
-    }
     
     Ok(())
 }
@@ -107,14 +98,8 @@ pub fn load_document_from_storage(filename: &str) -> Option<String> {
     let file_path = storage_dir.join(filename);
     
     match fs::read_to_string(&file_path) {
-        Ok(content) => {
-            println!("Storage: Loaded {} from {:?}", filename, file_path);
-            Some(content)
-        }
-        Err(e) => {
-            println!("Storage: Failed to load {}: {}", filename, e);
-            None
-        }
+        Ok(content) => Some(content),
+        Err(_) => None,
     }
 }
 
@@ -123,34 +108,23 @@ pub fn delete_document_from_storage(filename: &str) -> bool {
     let file_path = storage_dir.join(filename);
     
     match fs::remove_file(&file_path) {
-        Ok(_) => {
-            println!("Storage: Deleted {} from {:?}", filename, file_path);
-            true
-        }
-        Err(e) => {
-            println!("Storage: Failed to delete {}: {}", filename, e);
-            false
-        }
+        Ok(_) => true,
+        Err(_) => false,
     }
 }
 
 pub fn get_saved_files() -> Vec<String> {
     let storage_dir = get_storage_directory();
-    println!("Storage: Looking for files in {:?}", storage_dir);
-    
-    // Read all .json files from the storage directory
     let mut files = Vec::new();
     
     match fs::read_dir(&storage_dir) {
         Ok(entries) => {
-            println!("Storage: Successfully opened directory, reading entries...");
             for entry in entries {
                 if let Ok(entry) = entry {
                     let path = entry.path();
                     if let Some(filename) = path.file_name() {
                         if let Some(filename_str) = filename.to_str() {
                             if filename_str.ends_with(".json") {
-                                println!("Storage: Found file: {}", filename_str);
                                 files.push(filename_str.to_string());
                             }
                         }
@@ -158,18 +132,13 @@ pub fn get_saved_files() -> Vec<String> {
                 }
             }
         }
-        Err(e) => {
-            println!("Storage: Failed to read directory {:?}: {}", storage_dir, e);
-            // Return empty list if directory doesn't exist or can't be read
+        Err(_) => {
             return vec![];
         }
     }
     
-    // Add sample files if directory is empty (first run)
     if files.is_empty() {
-        println!("Storage: No files found, initializing sample files...");
         initialize_sample_files();
-        // Re-read after initialization
         if let Ok(entries) = fs::read_dir(&storage_dir) {
             for entry in entries {
                 if let Ok(entry) = entry {
@@ -177,7 +146,6 @@ pub fn get_saved_files() -> Vec<String> {
                     if let Some(filename) = path.file_name() {
                         if let Some(filename_str) = filename.to_str() {
                             if filename_str.ends_with(".json") {
-                                println!("Storage: Found file after init: {}", filename_str);
                                 files.push(filename_str.to_string());
                             }
                         }
@@ -187,8 +155,7 @@ pub fn get_saved_files() -> Vec<String> {
         }
     }
     
-    files.sort(); // Sort alphabetically
-    println!("Storage: Returning {} files: {:?}", files.len(), files);
+    files.sort();
     files
 }
 
@@ -217,16 +184,8 @@ pub fn get_storage_directory() -> PathBuf {
         };
         
         match fs::create_dir_all(&storage_dir) {
-            Ok(_) => {
-                println!("iOS: Created storage directory at {:?}", storage_dir);
-                storage_dir
-            }
-            Err(e) => {
-                println!("iOS: Failed to create storage directory {:?}: {}", storage_dir, e);
-                let temp_dir = std::env::temp_dir();
-                println!("iOS: Using temp directory: {:?}", temp_dir);
-                temp_dir
-            }
+            Ok(_) => storage_dir,
+            Err(_) => std::env::temp_dir(),
         }
     } else if cfg!(target_os = "android") {
         // On Android, try to use internal storage
@@ -241,28 +200,16 @@ pub fn get_storage_directory() -> PathBuf {
         };
         
         match fs::create_dir_all(&storage_dir) {
-            Ok(_) => {
-                println!("Android: Created storage directory at {:?}", storage_dir);
-                storage_dir
-            }
-            Err(e) => {
-                println!("Android: Failed to create storage directory {:?}: {}", storage_dir, e);
-                std::env::temp_dir()
-            }
+            Ok(_) => storage_dir,
+            Err(_) => std::env::temp_dir(),
         }
     } else {
         let mut storage_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
         storage_dir.push("mobile_documents");
         
         match fs::create_dir_all(&storage_dir) {
-            Ok(_) => {
-                println!("Desktop: Created storage directory at {:?}", storage_dir);
-                storage_dir
-            }
-            Err(e) => {
-                println!("Desktop: Failed to create storage directory {:?}: {}", storage_dir, e);
-                std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
-            }
+            Ok(_) => storage_dir,
+            Err(_) => std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
         }
     }
 }
@@ -278,8 +225,6 @@ pub fn initialize_sample_files() {
     
     let _ = save_document_to_storage(sample_circle, "sample_circle.json");
     let _ = save_document_to_storage(sample_square, "sample_square.json");
-    
-    println!("Mobile: Initialized sample files for first run");
 }
 
 pub fn share_document_mobile(content: &str) {
