@@ -15,7 +15,6 @@ use web_sys::{window, Blob, Url, HtmlAnchorElement, Element};
 use anyhow::{Result, anyhow};
 use js_sys::Array;
 
-
 /// Save a document using the appropriate platform method
 pub fn save_document(content: &str, filename: &str) -> Result<()> {
     if cfg!(target_arch = "wasm32") {
@@ -77,13 +76,6 @@ fn collect_json_files_from_dir(storage_dir: &Path) -> Result<Vec<String>, std::i
         .collect())
 }
 
-/// Helper to create a storage directory with fallback
-fn create_storage_dir_with_fallback(preferred_dir: &Path, fallback_dir: PathBuf) -> PathBuf {
-    match fs::create_dir_all(preferred_dir) {
-        Ok(_) => preferred_dir.to_path_buf(),
-        Err(_) => fallback_dir,
-    }
-}
 
 // Platform-specific implementation functions
 
@@ -165,7 +157,9 @@ pub fn get_storage_directory() -> PathBuf {
             dir.push("mobile_documents");
             dir
         };
-        create_storage_dir_with_fallback(&storage_dir, std::env::temp_dir())
+        fs::create_dir_all(&storage_dir)
+            .map(|_| storage_dir)
+            .unwrap_or_else(|_| std::env::temp_dir())
     } else if cfg!(target_os = "android") {
         let storage_dir = if let Ok(current) = std::env::current_dir() {
             let mut dir = current;
@@ -176,12 +170,16 @@ pub fn get_storage_directory() -> PathBuf {
             dir.push("mobile_documents");
             dir
         };
-        create_storage_dir_with_fallback(&storage_dir, std::env::temp_dir())
+        fs::create_dir_all(&storage_dir)
+            .map(|_| storage_dir)
+            .unwrap_or_else(|_| std::env::temp_dir())
     } else {
         let mut storage_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
         storage_dir.push("mobile_documents");
         let fallback = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-        create_storage_dir_with_fallback(&storage_dir, fallback)
+        fs::create_dir_all(&storage_dir)
+            .map(|_| storage_dir)
+            .unwrap_or(fallback)
     }
 }
 
