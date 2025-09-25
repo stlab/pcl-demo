@@ -33,8 +33,7 @@ fn AppUI() -> Element {
 
     // Handle menu events
     use_muda_event_handler(move |event| {
-        let MenuEvent { id } = event;
-        match id.0.as_str() {
+        match event.id.0.as_str() {
             "new" => {
                 state.write().new_document();
             }
@@ -70,7 +69,7 @@ fn AppUI() -> Element {
                     }
                 }
             }
-            _ => { unreachable!("unknown menu item {:?}", id.as_ref()) }
+            _ => { unreachable!("unknown menu item {:?}", event.id.as_ref()) }
         }
     });
 
