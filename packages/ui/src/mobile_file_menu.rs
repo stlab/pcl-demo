@@ -357,7 +357,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                                                 if let Ok(_) = save_document(&json_content, &filename) {
                                                     {
                                                         let mut app_state = state.write();
-                                                        app_state.current_file_path = Some(std::path::PathBuf::from(&filename));
+                                                        app_state.current_file_path = Some(PathBuf::from(&filename));
                                                     }
                                                     saved_files.set(get_saved_files());
                                                 }

@@ -82,7 +82,7 @@ pub struct PlatformMenu;
 
 impl PlatformMenu {
     /// Create the application menu bar with platform-appropriate structure
-    pub fn create_menu_bar() -> dioxus::desktop::muda::Menu {
+    pub fn create_menu_bar() -> Menu {
         
         let menu_bar = Menu::new();
         let modifiers = PlatformModifiers::new();

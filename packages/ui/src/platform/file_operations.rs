@@ -9,10 +9,14 @@ use std::fs;
 // Web API imports (available on all platforms for development ease)
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use web_sys::{window, Blob, Url, HtmlAnchorElement};
+use web_sys::{window, Blob, Url, HtmlAnchorElement, Element};
+
+// Other imports
+use anyhow::{Result, anyhow};
+use js_sys::Array;
 
 /// Result type for file operations
-pub type FileOperationResult<T> = anyhow::Result<T>;
+pub type FileOperationResult<T> = Result<T>;
 
 /// Save a document using the appropriate platform method
 pub fn save_document(content: &str, filename: &str) -> FileOperationResult<()> {
@@ -30,7 +34,7 @@ pub fn save_document(content: &str, filename: &str) -> FileOperationResult<()> {
 pub fn load_document(filename: &str) -> FileOperationResult<String> {
     if cfg!(feature = "mobile") {
         load_document_from_storage(filename)
-            .ok_or_else(|| anyhow::anyhow!("Failed to load document: {}", filename))
+            .ok_or_else(|| anyhow!("Failed to load document: {}", filename))
     } else {
         unreachable!("load_document should not be called on this platform")
     }
@@ -42,7 +46,7 @@ pub fn delete_document(filename: &str) -> FileOperationResult<()> {
         if delete_document_from_storage(filename) {
             Ok(())
         } else {
-            Err(anyhow::anyhow!("Failed to delete document: {}", filename))
+            Err(anyhow!("Failed to delete document: {}", filename))
         }
     } else {
         unreachable!("delete_document should not be called on this platform")
@@ -59,7 +63,7 @@ fn download_file(content: &str, filename: &str) {
     let window = window().unwrap();
     let document = window.document().unwrap();
     
-    let array = js_sys::Array::new();
+    let array = Array::new();
     array.push(&JsValue::from_str(content));
 
     // Synthesize a link to the content and (programmatically) click
@@ -74,7 +78,7 @@ fn download_file(content: &str, filename: &str) {
     
     anchor.set_href(&url);
     anchor.set_download(filename);
-    let anchor_element: &web_sys::Element = anchor.as_ref();
+    let anchor_element: &Element = anchor.as_ref();
     anchor_element.set_attribute("style", "display: none").unwrap();
     document.body().unwrap().append_child(&anchor).unwrap();
     anchor.click();
@@ -87,7 +91,7 @@ pub fn save_document_to_storage(content: &str, filename: &str) -> FileOperationR
     let file_path = storage_dir.join(filename);
     
     fs::write(&file_path, content).map_err(|e| {
-        anyhow::anyhow!("Failed to save {} to {:?}: {}", filename, file_path, e)
+        anyhow!("Failed to save {} to {:?}: {}", filename, file_path, e)
     })?;
     
     Ok(())

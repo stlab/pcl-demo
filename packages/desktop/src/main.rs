@@ -1,4 +1,4 @@
-use dioxus::{desktop::WindowBuilder, prelude::*};
+use dioxus::{desktop::{WindowBuilder, Config, use_muda_event_handler, muda::MenuEvent}, prelude::*, LaunchBuilder};
 
 use ui::{ApplicationState, DocumentUI};
 
@@ -14,8 +14,8 @@ fn main() {
 
     // Nonstandard startup so the application window doesn't float on
     // top of those of other applications.
-    dioxus::LaunchBuilder::desktop().with_cfg(
-        dioxus::desktop::Config::default()
+    LaunchBuilder::desktop().with_cfg(
+        Config::default()
             .with_window(
                 WindowBuilder::new()
                     .with_always_on_top(false))
@@ -32,8 +32,8 @@ fn AppUI() -> Element {
     let mut state = use_signal(|| ApplicationState::new());
 
     // Handle menu events
-    dioxus::desktop::use_muda_event_handler(move |event| {
-        let dioxus::desktop::muda::MenuEvent { id } = event;
+    use_muda_event_handler(move |event| {
+        let MenuEvent { id } = event;
         match id.0.as_str() {
             "new" => {
                 state.write().new_document();
