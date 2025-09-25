@@ -43,11 +43,9 @@ pub fn load_document(filename: &str) -> FileOperationResult<String> {
 /// Delete a document using the appropriate platform method
 pub fn delete_document(filename: &str) -> FileOperationResult<()> {
     if cfg!(feature = "mobile") {
-        if delete_document_from_storage(filename) {
-            Ok(())
-        } else {
-            Err(anyhow!("Failed to delete document: {}", filename))
-        }
+        delete_document_from_storage(filename)
+            .then_some(())
+            .ok_or_else(|| anyhow!("Failed to delete document: {}", filename))
     } else {
         unreachable!("delete_document should not be called on this platform")
     }
@@ -66,25 +64,19 @@ fn get_file_path(filename: &str) -> PathBuf {
 }
 
 /// Helper to collect JSON files from a directory
-fn collect_json_files_from_dir(storage_dir: &Path) -> Vec<String> {
-    let mut files = Vec::new();
+fn collect_json_files_from_dir(storage_dir: &Path) -> Result<Vec<String>, std::io::Error> {
+    let entries = fs::read_dir(storage_dir)?;
     
-    if let Ok(entries) = fs::read_dir(storage_dir) {
-        for entry in entries {
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                if let Some(filename) = path.file_name() {
-                    if let Some(filename_str) = filename.to_str() {
-                        if filename_str.ends_with(".json") {
-                            files.push(filename_str.to_string());
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    files
+    Ok(entries
+        .flatten() // Convert Result<DirEntry, Error> to just DirEntry, skipping errors
+        .filter_map(|entry| { // Extract filename and filter for .json files
+            entry.path()
+                .file_name()
+                .and_then(|name| name.to_str())
+                .filter(|name| name.ends_with(".json"))
+                .map(|name| name.to_string())
+        })
+        .collect())
 }
 
 /// Helper to create a storage directory with fallback
@@ -136,29 +128,21 @@ pub fn save_document_to_storage(content: &str, filename: &str) -> FileOperationR
 
 pub fn load_document_from_storage(filename: &str) -> Option<String> {
     let file_path = get_file_path(filename);
-    
-    match fs::read_to_string(&file_path) {
-        Ok(content) => Some(content),
-        Err(_) => None,
-    }
+    fs::read_to_string(&file_path).ok()
 }
 
 pub fn delete_document_from_storage(filename: &str) -> bool {
     let file_path = get_file_path(filename);
-    
-    match fs::remove_file(&file_path) {
-        Ok(_) => true,
-        Err(_) => false,
-    }
+    fs::remove_file(&file_path).is_ok()
 }
 
 pub fn get_saved_files() -> Vec<String> {
     let storage_dir = get_storage_directory();
-    let mut files = collect_json_files_from_dir(&storage_dir);
+    let mut files = collect_json_files_from_dir(&storage_dir).unwrap_or_default();
     
     if files.is_empty() {
         initialize_sample_files();
-        files = collect_json_files_from_dir(&storage_dir);
+        files = collect_json_files_from_dir(&storage_dir).unwrap_or_default();
     }
     
     files.sort();
@@ -167,11 +151,8 @@ pub fn get_saved_files() -> Vec<String> {
 
 pub fn get_file_size_impl(filename: &str) -> usize {
     let file_path = get_file_path(filename);
-    
-    match fs::metadata(&file_path) {
-        Ok(metadata) => metadata.len() as usize,
-        Err(_) => 0,
-    }
+    fs::metadata(&file_path)
+        .map_or(0, |metadata| metadata.len() as usize)
 }
 
 pub fn get_storage_directory() -> PathBuf {
