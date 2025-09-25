@@ -15,11 +15,9 @@ use web_sys::{window, Blob, Url, HtmlAnchorElement, Element};
 use anyhow::{Result, anyhow};
 use js_sys::Array;
 
-/// Result type for file operations
-pub type FileOperationResult<T> = Result<T>;
 
 /// Save a document using the appropriate platform method
-pub fn save_document(content: &str, filename: &str) -> FileOperationResult<()> {
+pub fn save_document(content: &str, filename: &str) -> Result<()> {
     if cfg!(target_arch = "wasm32") {
         download_file(content, filename);
         Ok(())
@@ -31,7 +29,7 @@ pub fn save_document(content: &str, filename: &str) -> FileOperationResult<()> {
 }
 
 /// Load a document using the appropriate platform method
-pub fn load_document(filename: &str) -> FileOperationResult<String> {
+pub fn load_document(filename: &str) -> Result<String> {
     if cfg!(feature = "mobile") {
         load_document_from_storage(filename)
             .ok_or_else(|| anyhow!("Failed to load document: {}", filename))
@@ -41,7 +39,7 @@ pub fn load_document(filename: &str) -> FileOperationResult<String> {
 }
 
 /// Delete a document using the appropriate platform method
-pub fn delete_document(filename: &str) -> FileOperationResult<()> {
+pub fn delete_document(filename: &str) -> Result<()> {
     if cfg!(feature = "mobile") {
         delete_document_from_storage(filename)
             .then_some(())
@@ -116,7 +114,7 @@ fn download_file(content: &str, filename: &str) {
     Url::revoke_object_url(&url).unwrap();
 }
 
-pub fn save_document_to_storage(content: &str, filename: &str) -> FileOperationResult<()> {
+pub fn save_document_to_storage(content: &str, filename: &str) -> Result<()> {
     let file_path = get_file_path(filename);
     
     fs::write(&file_path, content).map_err(|e| {
