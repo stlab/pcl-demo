@@ -5,7 +5,7 @@ use std::rc::Rc;
 // Web API imports (available on all platforms for development ease)
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use web_sys::{window, Blob, Url, HtmlAnchorElement, HtmlInputElement, FileReader, Event};
+use web_sys::{window, Blob, Url, HtmlAnchorElement};
 
 
 

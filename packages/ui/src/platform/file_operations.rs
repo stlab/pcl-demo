@@ -12,7 +12,7 @@ use wasm_bindgen::JsCast;
 use web_sys::{window, Blob, Url, HtmlAnchorElement, Element};
 
 // Other imports
-use anyhow::{Result, anyhow};
+use anyhow::{Result, Context};
 use js_sys::Array;
 
 /// Save a document using the appropriate platform method
@@ -31,7 +31,7 @@ pub fn save_document(content: &str, filename: &str) -> Result<()> {
 pub fn load_document(filename: &str) -> Result<String> {
     if cfg!(feature = "mobile") {
         load_document_from_storage(filename)
-            .ok_or_else(|| anyhow!("Failed to load document: {}", filename))
+            .with_context(|| format!("Failed to load document '{}'", filename))
     } else {
         unreachable!("load_document should not be called on this platform")
     }
@@ -41,8 +41,7 @@ pub fn load_document(filename: &str) -> Result<String> {
 pub fn delete_document(filename: &str) -> Result<()> {
     if cfg!(feature = "mobile") {
         delete_document_from_storage(filename)
-            .then_some(())
-            .ok_or_else(|| anyhow!("Failed to delete document: {}", filename))
+            .with_context(|| format!("Failed to delete document '{}'", filename))
     } else {
         unreachable!("delete_document should not be called on this platform")
     }
@@ -61,8 +60,9 @@ fn get_file_path(filename: &str) -> PathBuf {
 }
 
 /// Helper to collect JSON files from a directory
-fn collect_json_files_from_dir(storage_dir: &Path) -> Result<Vec<String>, std::io::Error> {
-    let entries = fs::read_dir(storage_dir)?;
+fn collect_json_files_from_dir(storage_dir: &Path) -> Result<Vec<String>> {
+    let entries = fs::read_dir(storage_dir)
+        .with_context(|| format!("Failed to read directory {:?}", storage_dir))?;
     
     Ok(entries
         .flatten() // Convert Result<DirEntry, Error> to just DirEntry, skipping errors
@@ -109,40 +109,42 @@ fn download_file(content: &str, filename: &str) {
 pub fn save_document_to_storage(content: &str, filename: &str) -> Result<()> {
     let file_path = get_file_path(filename);
     
-    fs::write(&file_path, content).map_err(|e| {
-        anyhow!("Failed to save {} to {:?}: {}", filename, file_path, e)
-    })?;
+    fs::write(&file_path, content)
+        .with_context(|| format!("Failed to save '{}' to {:?}", filename, file_path))?;
     
     Ok(())
 }
 
-pub fn load_document_from_storage(filename: &str) -> Option<String> {
+pub fn load_document_from_storage(filename: &str) -> Result<String> {
     let file_path = get_file_path(filename);
-    fs::read_to_string(&file_path).ok()
+    fs::read_to_string(&file_path)
+        .with_context(|| format!("Failed to read file '{}'", filename))
 }
 
-pub fn delete_document_from_storage(filename: &str) -> bool {
+pub fn delete_document_from_storage(filename: &str) -> Result<()> {
     let file_path = get_file_path(filename);
-    fs::remove_file(&file_path).is_ok()
+    fs::remove_file(&file_path)
+        .with_context(|| format!("Failed to delete file '{}'", filename))
 }
 
-pub fn get_saved_files() -> Vec<String> {
+pub fn get_saved_files() -> Result<Vec<String>> {
     let storage_dir = get_storage_directory();
-    let mut files = collect_json_files_from_dir(&storage_dir).unwrap_or_default();
+    let mut files = collect_json_files_from_dir(&storage_dir)?;
     
     if files.is_empty() {
         initialize_sample_files();
-        files = collect_json_files_from_dir(&storage_dir).unwrap_or_default();
+        files = collect_json_files_from_dir(&storage_dir)?;
     }
     
     files.sort();
-    files
+    Ok(files)
 }
 
-pub fn get_file_size_impl(filename: &str) -> usize {
+pub fn get_file_size_impl(filename: &str) -> Result<usize> {
     let file_path = get_file_path(filename);
     fs::metadata(&file_path)
-        .map_or(0, |metadata| metadata.len() as usize)
+        .map(|metadata| metadata.len() as usize)
+        .with_context(|| format!("Failed to get file size for '{}'", filename))
 }
 
 pub fn get_storage_directory() -> PathBuf {

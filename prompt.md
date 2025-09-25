@@ -285,7 +285,7 @@ write:
 ```
 ### Testing
 
-You can test that the code builds with `dx build --package desktop && dx build --package web && dx build --package mobile --platform desktop`
+You can test that the code builds with `dx build --package desktop`.  Because we have no conditional compilation there's no need to build other targets to check for compile errors.
 
 ### Running the Web app
 

@@ -4,7 +4,6 @@ use crate::platform::{get_saved_files, get_file_size_impl, save_document, load_d
 
 // Mobile-specific imports
 use std::path::PathBuf;
-use std::fs;
 
 const MOBILE_FILE_MENU_CSS: Asset = asset!("/assets/styling/mobile_file_menu.css");
 
@@ -17,7 +16,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
     let mut file_list_open = use_signal(|| false);
     let mut filename_prompt_open = use_signal(|| false);
     let mut filename_input = use_signal(|| String::new());
-    let mut saved_files = use_signal(|| get_saved_files());
+    let mut saved_files = use_signal(|| get_saved_files().unwrap_or_default());
     
     let handle_new = move |_| {
         state.write().new_document();
@@ -25,9 +24,20 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
     };
     
     let handle_open = move |_| {
-        saved_files.set(get_saved_files());
-        file_list_open.set(true);
-        menu_open.set(false);
+        match get_saved_files() {
+            Ok(files) => {
+                saved_files.set(files);
+                file_list_open.set(true);
+                menu_open.set(false);
+            }
+            Err(e) => {
+                eprintln!("Failed to load saved files: {}", e);
+                // Still open the dialog but with empty list
+                saved_files.set(vec![]);
+                file_list_open.set(true);
+                menu_open.set(false);
+            }
+        }
     };
     
     let handle_save = move |_| {
@@ -39,8 +49,14 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                 .and_then(|n| n.to_str())
                 .unwrap_or("document.json");
             
-            if let Ok(_) = save_document(&json_content, filename) {
-                saved_files.set(get_saved_files());
+            match save_document(&json_content, filename) {
+                Ok(_) => {
+                    match get_saved_files() {
+                        Ok(files) => saved_files.set(files),
+                        Err(e) => eprintln!("Failed to refresh file list after save: {}", e),
+                    }
+                }
+                Err(e) => eprintln!("Failed to save document: {}", e),
             }
         }
         menu_open.set(false);
@@ -107,7 +123,10 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                         let mut app_state = state.write();
                         app_state.current_file_path = Some(std::path::PathBuf::from(&filename));
                     }
-                    saved_files.set(get_saved_files()); // Refresh file list
+                    match get_saved_files() {
+                        Ok(files) => saved_files.set(files),
+                        Err(e) => eprintln!("Failed to refresh file list: {}", e),
+                    }
                     println!("Mobile: Saved as {}", filename);
                 }
             }
@@ -280,7 +299,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                                         div {
                                             class: "file-item-info",
                                             div { class: "file-item-name", "{filename}" }
-                                            div { class: "file-item-size", "{get_file_size_impl(filename)} bytes" }
+                                            div { class: "file-item-size", "{get_file_size_impl(filename).unwrap_or(0)} bytes" }
                                         }
                                     }
                                     button {
@@ -289,8 +308,14 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                                             let filename = filename.clone();
                                             let mut local_saved_files = saved_files.clone();
                                             move |_| {
-                                                if let Ok(_) = delete_document(&filename) {
-                                                    local_saved_files.set(get_saved_files());
+                                                match delete_document(&filename) {
+                                                    Ok(_) => {
+                                                        match get_saved_files() {
+                                                            Ok(files) => local_saved_files.set(files),
+                                                            Err(e) => eprintln!("Failed to refresh file list after delete: {}", e),
+                                                        }
+                                                    }
+                                                    Err(e) => eprintln!("Failed to delete document: {}", e),
                                                 }
                                             }
                                         },
@@ -354,12 +379,18 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                                                     format!("{}.json", filename)
                                                 };
                                                 
-                                                if let Ok(_) = save_document(&json_content, &filename) {
-                                                    {
-                                                        let mut app_state = state.write();
-                                                        app_state.current_file_path = Some(PathBuf::from(&filename));
+                                                match save_document(&json_content, &filename) {
+                                                    Ok(_) => {
+                                                        {
+                                                            let mut app_state = state.write();
+                                                            app_state.current_file_path = Some(PathBuf::from(&filename));
+                                                        }
+                                                        match get_saved_files() {
+                                                            Ok(files) => saved_files.set(files),
+                                                            Err(e) => eprintln!("Failed to refresh file list after save: {}", e),
+                                                        }
                                                     }
-                                                    saved_files.set(get_saved_files());
+                                                    Err(e) => eprintln!("Failed to save document: {}", e),
                                                 }
                                             }
                                         }
