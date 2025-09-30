@@ -1,4 +1,5 @@
 use dioxus::{desktop::{WindowBuilder, Config, use_muda_event_handler}, prelude::*, LaunchBuilder};
+use std::fmt::Display;
 
 use ui::{ApplicationState, DocumentUI};
 
@@ -9,7 +10,7 @@ use platform::{PlatformDialogs, PlatformMenu};
 const MAIN_CSS: Asset = asset!("/assets/main.css");
 
 /// Helper function to handle file operation results with consistent error reporting
-fn handle_file_result<T, E: std::fmt::Display>(result: Result<T, E>, operation: &str) {
+fn handle_file_result<T, E: Display>(result: Result<T, E>, operation: &str) {
     match result {
         Ok(_) => {},
         Err(e) => eprintln!("Failed to {}: {}", operation, e),

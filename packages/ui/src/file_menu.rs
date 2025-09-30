@@ -1,10 +1,13 @@
 use dioxus::prelude::*;
 use crate::application_state::*;
+use crate::Document;
 
 // Web API imports (available on all platforms for development ease)
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::{JsCast, JsValue};
-use web_sys::{window, Blob, Url, HtmlAnchorElement};
+use web_sys::{window, Blob, Url, HtmlAnchorElement, HtmlInputElement, FileReader, console::log_1};
+use js_sys::Array;
+use serde_json::{to_string_pretty, from_str};
 
 
 
@@ -15,7 +18,7 @@ const FILE_MENU_CSS: Asset = asset!("/assets/styling/file_menu.css");
 pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
     
     let mut state = application_state;
-    let mut file_input_ref = use_signal(|| None::<web_sys::HtmlInputElement>);
+    let mut file_input_ref = use_signal(|| None::<HtmlInputElement>);
     // Store the FileReader onload closure so it doesn't leak
     let mut onload_closure = use_signal(|| None::<Closure<dyn FnMut(web_sys::Event)>>);
     
@@ -31,7 +34,7 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
     
     let handle_save = move |_| {
         let current_state = state.read();
-        if let Ok(json_content) = serde_json::to_string_pretty(&current_state.the_only_document) {
+        if let Ok(json_content) = to_string_pretty(&current_state.the_only_document) {
             let filename = current_state.current_file_path
                 .as_ref()
                 .and_then(|p| p.file_name())
@@ -43,14 +46,14 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
     
     let handle_save_as = move |_| {
         let current_state = state.read();
-        if let Ok(json_content) = serde_json::to_string_pretty(&current_state.the_only_document) {
+        if let Ok(json_content) = to_string_pretty(&current_state.the_only_document) {
             download_file(&json_content, "document.json");
         }
     };
     
     let handle_file_input_mounted = move |element: MountedEvent| {
         if let Some(web_element) = element.downcast::<web_sys::Element>() {
-            if let Ok(input) = web_element.clone().dyn_into::<web_sys::HtmlInputElement>() {
+            if let Ok(input) = web_element.clone().dyn_into::<HtmlInputElement>() {
                 *file_input_ref.write() = Some(input);
             }
         }
@@ -62,25 +65,25 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
             .and_then(|input| input.files())
             .and_then(|files| files.get(0))
         {
-            web_sys::console::log_1(&format!("Selected file: {}", file.name()).into());
+            log_1(&format!("Selected file: {}", file.name()).into());
 
-            let file_reader = web_sys::FileReader::new().unwrap();
+            let file_reader = FileReader::new().unwrap();
             let mut state_clone = state.clone();
             let file_reader_ptr = file_reader.clone();
 
             let onload = Closure::<dyn FnMut(web_sys::Event)>::new(move |_| {
                 if let Ok(result) = file_reader_ptr.result() {
                     if let Some(text) = result.as_string() {
-                        web_sys::console::log_1(&format!("File content read: {} chars", text.len()).into());
+                        log_1(&format!("File content read: {} chars", text.len()).into());
 
-                        match serde_json::from_str::<crate::Document>(&text) {
+                        match from_str::<Document>(&text) {
                             Ok(document) => {
-                                web_sys::console::log_1(&"Successfully parsed document".into());
+                                log_1(&"Successfully parsed document".into());
                                 state_clone.write().the_only_document = document;
                                 state_clone.write().current_file_path = None;
                             }
                             Err(e) => {
-                                web_sys::console::log_1(&format!("Parse error: {}", e).into());
+                                log_1(&format!("Parse error: {}", e).into());
                             }
                         }
                     }
@@ -153,7 +156,7 @@ fn download_file(content: &str, filename: &str) {
     let window = window().unwrap();
     let document = window.document().unwrap();
     
-    let array = js_sys::Array::new();
+    let array = Array::new();
     array.push(&JsValue::from_str(content));
     
     let blob = Blob::new_with_str_sequence(&array).unwrap();

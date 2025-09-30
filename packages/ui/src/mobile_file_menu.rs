@@ -1,9 +1,11 @@
 use dioxus::prelude::*;
 use crate::application_state::*;
 use crate::platform::{get_saved_files, get_file_size_impl, save_document, load_document, delete_document, share_document_mobile};
+use crate::Document;
 
 // Mobile-specific imports
 use std::path::PathBuf;
+use serde_json::{to_string_pretty, from_str};
 
 const MOBILE_FILE_MENU_CSS: Asset = asset!("/assets/styling/mobile_file_menu.css");
 
@@ -42,7 +44,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
     
     let handle_save = move |_| {
         let current_state = state.read();
-        if let Ok(json_content) = serde_json::to_string_pretty(&current_state.the_only_document) {
+        if let Ok(json_content) = to_string_pretty(&current_state.the_only_document) {
             let filename = current_state.current_file_path
                 .as_ref()
                 .and_then(|p| p.file_name())
@@ -80,7 +82,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
     
     let handle_share = move |_| {
         let current_state = state.read();
-        if let Ok(json_content) = serde_json::to_string_pretty(&current_state.the_only_document) {
+        if let Ok(json_content) = to_string_pretty(&current_state.the_only_document) {
             share_document_mobile(&json_content);
         }
         menu_open.set(false);
@@ -108,7 +110,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
         if !filename.trim().is_empty() {
             let json_content = {
                 let current_state = state.read();
-                serde_json::to_string_pretty(&current_state.the_only_document)
+                to_string_pretty(&current_state.the_only_document)
             };
             
             if let Ok(json_content) = json_content {
@@ -121,7 +123,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                                                 if let Ok(_) = save_document(&json_content, &filename) {
                     {
                         let mut app_state = state.write();
-                        app_state.current_file_path = Some(std::path::PathBuf::from(&filename));
+                        app_state.current_file_path = Some(PathBuf::from(&filename));
                     }
                     match get_saved_files() {
                         Ok(files) => saved_files.set(files),
@@ -136,10 +138,10 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
     
     let mut handle_file_open = move |filename: String| {
         if let Ok(content) = load_document(&filename) {
-            match serde_json::from_str::<crate::Document>(&content) {
+            match from_str::<Document>(&content) {
                 Ok(document) => {
                     state.write().the_only_document = document;
-                    state.write().current_file_path = Some(std::path::PathBuf::from(&filename));
+                    state.write().current_file_path = Some(PathBuf::from(&filename));
                 }
                 Err(_) => {}
             }
@@ -169,7 +171,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
             if !filename.trim().is_empty() {
                 let json_content = {
                     let current_state = state.read();
-                    serde_json::to_string_pretty(&current_state.the_only_document)
+                    to_string_pretty(&current_state.the_only_document)
                 };
                 
                 if let Ok(json_content) = json_content {
