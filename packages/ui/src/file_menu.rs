@@ -3,8 +3,7 @@ use crate::application_state::*;
 
 // Web API imports (available on all platforms for development ease)
 use wasm_bindgen::closure::Closure;
-use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
+use wasm_bindgen::{JsCast, JsValue};
 use web_sys::{window, Blob, Url, HtmlAnchorElement};
 
 
