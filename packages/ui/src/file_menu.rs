@@ -2,6 +2,7 @@ use dioxus::prelude::*;
 use crate::application_state::*;
 
 // Web API imports (available on all platforms for development ease)
+use wasm_bindgen::closure::Closure;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{window, Blob, Url, HtmlAnchorElement};
@@ -17,7 +18,7 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
     let mut state = application_state;
     let mut file_input_ref = use_signal(|| None::<web_sys::HtmlInputElement>);
     // Store the FileReader onload closure so it doesn't leak
-    let mut onload_closure = use_signal(|| None::<wasm_bindgen::closure::Closure<dyn FnMut(web_sys::Event)>>);
+    let mut onload_closure = use_signal(|| None::<Closure<dyn FnMut(web_sys::Event)>>);
     
     let handle_new = move |_| {
         state.write().new_document();
@@ -68,7 +69,7 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
             let mut state_clone = state.clone();
             let file_reader_ptr = file_reader.clone();
 
-            let onload = wasm_bindgen::closure::Closure::wrap(Box::new(move |_: web_sys::Event| {
+            let onload = Closure::<dyn FnMut(web_sys::Event)>::new(move |_| {
                 if let Ok(result) = file_reader_ptr.result() {
                     if let Some(text) = result.as_string() {
                         web_sys::console::log_1(&format!("File content read: {} chars", text.len()).into());
@@ -85,7 +86,7 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
                         }
                     }
                 }
-            }) as Box<dyn FnMut(_)>);
+            });
 
             file_reader.set_onload(Some(onload.as_ref().unchecked_ref()));
             file_reader.read_as_text(&file).unwrap();
