@@ -34,27 +34,42 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
     
     let handle_save = move |_| {
         let current_state = state.read();
-        if let Ok(json_content) = to_string_pretty(&current_state.the_only_document) {
-            let filename = current_state.current_file_path
-                .as_ref()
-                .and_then(|p| p.file_name())
-                .and_then(|n| n.to_str())
-                .unwrap_or("document.json");
-            download_file(&json_content, filename);
+        match to_string_pretty(&current_state.the_only_document) {
+            Ok(json_content) => {
+                let filename = current_state.current_file_path
+                    .as_ref()
+                    .and_then(|p| p.file_name())
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("document.json");
+                download_file(&json_content, filename);
+            }
+            Err(e) => {
+                eprintln!("Failed to serialize document for save: {}", e);
+            }
         }
     };
     
     let handle_save_as = move |_| {
         let current_state = state.read();
-        if let Ok(json_content) = to_string_pretty(&current_state.the_only_document) {
-            download_file(&json_content, "document.json");
+        match to_string_pretty(&current_state.the_only_document) {
+            Ok(json_content) => {
+                download_file(&json_content, "document.json");
+            }
+            Err(e) => {
+                eprintln!("Failed to serialize document for save as: {}", e);
+            }
         }
     };
     
     let handle_file_input_mounted = move |element: MountedEvent| {
         if let Some(web_element) = element.downcast::<web_sys::Element>() {
-            if let Ok(input) = web_element.clone().dyn_into::<HtmlInputElement>() {
-                *file_input_ref.write() = Some(input);
+            match web_element.clone().dyn_into::<HtmlInputElement>() {
+                Ok(input) => {
+                    *file_input_ref.write() = Some(input);
+                }
+                Err(e) => {
+                    eprintln!("Failed to cast element to HtmlInputElement: {:?}", e);
+                }
             }
         }
     };

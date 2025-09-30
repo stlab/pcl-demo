@@ -44,21 +44,26 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
     
     let handle_save = move |_| {
         let current_state = state.read();
-        if let Ok(json_content) = to_string_pretty(&current_state.the_only_document) {
-            let filename = current_state.current_file_path
-                .as_ref()
-                .and_then(|p| p.file_name())
-                .and_then(|n| n.to_str())
-                .unwrap_or("document.json");
-            
-            match save_document(&json_content, filename) {
-                Ok(_) => {
-                    match get_saved_files() {
-                        Ok(files) => saved_files.set(files),
-                        Err(e) => eprintln!("Failed to refresh file list after save: {}", e),
+        match to_string_pretty(&current_state.the_only_document) {
+            Ok(json_content) => {
+                let filename = current_state.current_file_path
+                    .as_ref()
+                    .and_then(|p| p.file_name())
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("document.json");
+                
+                match save_document(&json_content, filename) {
+                    Ok(_) => {
+                        match get_saved_files() {
+                            Ok(files) => saved_files.set(files),
+                            Err(e) => eprintln!("Failed to refresh file list after save: {}", e),
+                        }
                     }
+                    Err(e) => eprintln!("Failed to save document: {}", e),
                 }
-                Err(e) => eprintln!("Failed to save document: {}", e),
+            }
+            Err(e) => {
+                eprintln!("Failed to serialize document for save: {}", e);
             }
         }
         menu_open.set(false);
@@ -82,8 +87,13 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
     
     let handle_share = move |_| {
         let current_state = state.read();
-        if let Ok(json_content) = to_string_pretty(&current_state.the_only_document) {
-            share_document_mobile(&json_content);
+        match to_string_pretty(&current_state.the_only_document) {
+            Ok(json_content) => {
+                share_document_mobile(&json_content);
+            }
+            Err(e) => {
+                eprintln!("Failed to serialize document for share: {}", e);
+            }
         }
         menu_open.set(false);
     };
@@ -113,23 +123,33 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                 to_string_pretty(&current_state.the_only_document)
             };
             
-            if let Ok(json_content) = json_content {
-                let filename = if filename.ends_with(".json") {
-                    filename
-                } else {
-                    format!("{}.json", filename)
-                };
-                
-                                                if let Ok(_) = save_document(&json_content, &filename) {
-                    {
-                        let mut app_state = state.write();
-                        app_state.current_file_path = Some(PathBuf::from(&filename));
+            match json_content {
+                Ok(json_content) => {
+                    let filename = if filename.ends_with(".json") {
+                        filename
+                    } else {
+                        format!("{}.json", filename)
+                    };
+                    
+                    match save_document(&json_content, &filename) {
+                        Ok(_) => {
+                            {
+                                let mut app_state = state.write();
+                                app_state.current_file_path = Some(PathBuf::from(&filename));
+                            }
+                            match get_saved_files() {
+                                Ok(files) => saved_files.set(files),
+                                Err(e) => eprintln!("Failed to refresh file list: {}", e),
+                            }
+                            println!("Mobile: Saved as {}", filename);
+                        }
+                        Err(e) => {
+                            eprintln!("Failed to save document: {}", e);
+                        }
                     }
-                    match get_saved_files() {
-                        Ok(files) => saved_files.set(files),
-                        Err(e) => eprintln!("Failed to refresh file list: {}", e),
-                    }
-                    println!("Mobile: Saved as {}", filename);
+                }
+                Err(e) => {
+                    eprintln!("Failed to serialize document for save with filename: {}", e);
                 }
             }
         }
@@ -137,13 +157,20 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
     };
     
     let mut handle_file_open = move |filename: String| {
-        if let Ok(content) = load_document(&filename) {
-            match from_str::<Document>(&content) {
-                Ok(document) => {
-                    state.write().the_only_document = document;
-                    state.write().current_file_path = Some(PathBuf::from(&filename));
+        match load_document(&filename) {
+            Ok(content) => {
+                match from_str::<Document>(&content) {
+                    Ok(document) => {
+                        state.write().the_only_document = document;
+                        state.write().current_file_path = Some(PathBuf::from(&filename));
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to parse document from file {}: {}", filename, e);
+                    }
                 }
-                Err(_) => {}
+            }
+            Err(e) => {
+                eprintln!("Failed to load document {}: {}", filename, e);
             }
         }
         file_list_open.set(false);
@@ -174,25 +201,30 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                     to_string_pretty(&current_state.the_only_document)
                 };
                 
-                if let Ok(json_content) = json_content {
-                    let filename = if filename.ends_with(".json") {
-                        filename
-                    } else {
-                        format!("{}.json", filename)
-                    };
-                    
-                    match save_document(&json_content, &filename) {
-                        Ok(_) => {
-                            {
-                                let mut app_state = state.write();
-                                app_state.current_file_path = Some(PathBuf::from(&filename));
+                match json_content {
+                    Ok(json_content) => {
+                        let filename = if filename.ends_with(".json") {
+                            filename
+                        } else {
+                            format!("{}.json", filename)
+                        };
+                        
+                        match save_document(&json_content, &filename) {
+                            Ok(_) => {
+                                {
+                                    let mut app_state = state.write();
+                                    app_state.current_file_path = Some(PathBuf::from(&filename));
+                                }
+                                match get_saved_files() {
+                                    Ok(files) => saved_files.set(files),
+                                    Err(e) => eprintln!("Failed to refresh file list after save: {}", e),
+                                }
                             }
-                            match get_saved_files() {
-                                Ok(files) => saved_files.set(files),
-                                Err(e) => eprintln!("Failed to refresh file list after save: {}", e),
-                            }
+                            Err(e) => eprintln!("Failed to save document: {}", e),
                         }
-                        Err(e) => eprintln!("Failed to save document: {}", e),
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to serialize document for keypress save: {}", e);
                     }
                 }
             }
