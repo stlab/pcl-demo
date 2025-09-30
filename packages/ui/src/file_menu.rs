@@ -98,7 +98,7 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
                                 state_clone.write().current_file_path = None;
                             }
                             Err(e) => {
-                                log_1(&format!("Parse error: {}", e).into());
+                                eprintln!("Parse error: {}", e);
                             }
                         }
                     }
