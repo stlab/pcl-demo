@@ -62,18 +62,19 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
             .and_then(|files| files.get(0))
         {
             web_sys::console::log_1(&format!("Selected file: {}", file.name()).into());
-            
+
             let file_reader = web_sys::FileReader::new().unwrap();
             let mut state_clone = state.clone();
-            
-            let file_reader_rc = Rc::new(file_reader);
-            let file_reader_for_closure = file_reader_rc.clone();
-            
-            let onload = wasm_bindgen::closure::Closure::wrap(Box::new(move |_event: web_sys::Event| {
-                if let Ok(result) = file_reader_for_closure.result() {
+
+            // We need to get a reference to the file_reader for the closure, but we can use a raw pointer
+            // and 'move' the file_reader into the closure, then forget the closure to keep it alive.
+            let file_reader_ptr = file_reader.clone();
+
+            let onload = wasm_bindgen::closure::Closure::wrap(Box::new(move |_: web_sys::Event| {
+                if let Ok(result) = file_reader_ptr.result() {
                     if let Some(text) = result.as_string() {
                         web_sys::console::log_1(&format!("File content read: {} chars", text.len()).into());
-                        
+
                         match serde_json::from_str::<crate::Document>(&text) {
                             Ok(document) => {
                                 web_sys::console::log_1(&"Successfully parsed document".into());
@@ -87,9 +88,9 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
                     }
                 }
             }) as Box<dyn FnMut(_)>);
-            
-            file_reader_rc.set_onload(Some(onload.as_ref().unchecked_ref()));
-            file_reader_rc.read_as_text(&file).unwrap();
+
+            file_reader.set_onload(Some(onload.as_ref().unchecked_ref()));
+            file_reader.read_as_text(&file).unwrap();
             onload.forget();
         }
     };
