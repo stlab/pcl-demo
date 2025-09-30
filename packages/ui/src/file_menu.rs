@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use crate::application_state::*;
+use crate::application_state::ApplicationState;
 use crate::Document;
 
 // Web API imports (available on all platforms for development ease)

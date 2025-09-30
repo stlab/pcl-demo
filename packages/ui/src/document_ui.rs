@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use crate::application_state::*;
+use crate::application_state::ApplicationState;
 use crate::platform::render_file_menu;
 
 const DOCUMENT_CSS: Asset = asset!("/assets/styling/document.css");

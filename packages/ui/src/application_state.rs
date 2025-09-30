@@ -1,4 +1,4 @@
-use crate::document::*;
+use crate::document::Document;
 use std::path::{Path, PathBuf};
 use anyhow::bail;
 

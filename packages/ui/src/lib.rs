@@ -19,7 +19,7 @@ mod file_menu;
 mod mobile_file_menu;
 
 mod application_state;
-pub use application_state::*;
+pub use application_state::ApplicationState;
 
 mod document;
-pub use document::*;
+pub use document::Document;

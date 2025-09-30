@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use crate::application_state::*;
+use crate::application_state::ApplicationState;
 use crate::platform::{get_saved_files, get_file_size_impl, save_document, load_document, delete_document, share_document_mobile};
 use crate::Document;
 

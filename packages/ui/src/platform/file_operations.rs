@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use std::fs;
 
 // Web API imports (available on all platforms for development ease)
-use wasm_bindgen::prelude::*;
+use wasm_bindgen::prelude::JsValue;
 use wasm_bindgen::JsCast;
 use web_sys::{window, Blob, Url, HtmlAnchorElement, Element};
 
