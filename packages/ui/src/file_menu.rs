@@ -1,6 +1,5 @@
 use dioxus::prelude::*;
 use crate::application_state::*;
-use std::rc::Rc;
 
 // Web API imports (available on all platforms for development ease)
 use wasm_bindgen::prelude::*;
@@ -17,6 +16,8 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
     
     let mut state = application_state;
     let mut file_input_ref = use_signal(|| None::<web_sys::HtmlInputElement>);
+    // Store the FileReader onload closure so it doesn't leak
+    let mut onload_closure = use_signal(|| None::<wasm_bindgen::closure::Closure<dyn FnMut(web_sys::Event)>>);
     
     let handle_new = move |_| {
         state.write().new_document();
@@ -65,9 +66,6 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
 
             let file_reader = web_sys::FileReader::new().unwrap();
             let mut state_clone = state.clone();
-
-            // We need to get a reference to the file_reader for the closure, but we can use a raw pointer
-            // and 'move' the file_reader into the closure, then forget the closure to keep it alive.
             let file_reader_ptr = file_reader.clone();
 
             let onload = wasm_bindgen::closure::Closure::wrap(Box::new(move |_: web_sys::Event| {
@@ -91,7 +89,8 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
 
             file_reader.set_onload(Some(onload.as_ref().unchecked_ref()));
             file_reader.read_as_text(&file).unwrap();
-            onload.forget();
+            
+            *onload_closure.write() = Some(onload);
         }
     };
 
