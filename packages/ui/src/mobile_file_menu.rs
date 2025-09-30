@@ -134,6 +134,70 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
         filename_prompt_open.set(false);
     };
     
+    let mut handle_file_open = move |filename: String| {
+        if let Ok(content) = load_document(&filename) {
+            match serde_json::from_str::<crate::Document>(&content) {
+                Ok(document) => {
+                    state.write().the_only_document = document;
+                    state.write().current_file_path = Some(std::path::PathBuf::from(&filename));
+                }
+                Err(_) => {}
+            }
+        }
+        file_list_open.set(false);
+    };
+    
+    let mut handle_file_delete = move |filename: String| {
+        match delete_document(&filename) {
+            Ok(_) => {
+                match get_saved_files() {
+                    Ok(files) => saved_files.set(files),
+                    Err(e) => eprintln!("Failed to refresh file list after delete: {}", e),
+                }
+            }
+            Err(e) => eprintln!("Failed to delete document: {}", e),
+        }
+    };
+    
+    let handle_filename_input = move |event: FormEvent| {
+        filename_input.set(event.value());
+    };
+    
+    let handle_filename_keypress = move |event: KeyboardEvent| {
+        if event.key() == Key::Enter {
+            let filename = filename_input.read().clone();
+            if !filename.trim().is_empty() {
+                let json_content = {
+                    let current_state = state.read();
+                    serde_json::to_string_pretty(&current_state.the_only_document)
+                };
+                
+                if let Ok(json_content) = json_content {
+                    let filename = if filename.ends_with(".json") {
+                        filename
+                    } else {
+                        format!("{}.json", filename)
+                    };
+                    
+                    match save_document(&json_content, &filename) {
+                        Ok(_) => {
+                            {
+                                let mut app_state = state.write();
+                                app_state.current_file_path = Some(PathBuf::from(&filename));
+                            }
+                            match get_saved_files() {
+                                Ok(files) => saved_files.set(files),
+                                Err(e) => eprintln!("Failed to refresh file list after save: {}", e),
+                            }
+                        }
+                        Err(e) => eprintln!("Failed to save document: {}", e),
+                    }
+                }
+            }
+            filename_prompt_open.set(false);
+        }
+    };
+    
 
     rsx! {
         document::Link { rel: "stylesheet", href: MOBILE_FILE_MENU_CSS }
@@ -277,20 +341,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                                         class: "file-item-button",
                                         onclick: {
                                             let filename = filename.clone();
-                                            let mut local_state = state.clone();
-                                            let mut local_file_list_open = file_list_open.clone();
-                                            move |_| {
-                                                if let Ok(content) = load_document(&filename) {
-                                                    match serde_json::from_str::<crate::Document>(&content) {
-                                                        Ok(document) => {
-                                                            local_state.write().the_only_document = document;
-                                                            local_state.write().current_file_path = Some(std::path::PathBuf::from(&filename));
-                                                        }
-                                                        Err(_) => {}
-                                                    }
-                                                }
-                                                local_file_list_open.set(false);
-                                            }
+                                            move |_| handle_file_open(filename.clone())
                                         },
                                         div {
                                             class: "file-item-icon",
@@ -306,18 +357,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                                         class: "file-delete-button",
                                         onclick: {
                                             let filename = filename.clone();
-                                            let mut local_saved_files = saved_files.clone();
-                                            move |_| {
-                                                match delete_document(&filename) {
-                                                    Ok(_) => {
-                                                        match get_saved_files() {
-                                                            Ok(files) => local_saved_files.set(files),
-                                                            Err(e) => eprintln!("Failed to refresh file list after delete: {}", e),
-                                                        }
-                                                    }
-                                                    Err(e) => eprintln!("Failed to delete document: {}", e),
-                                                }
-                                            }
+                                            move |_| handle_file_delete(filename.clone())
                                         },
                                         title: "Delete file",
                                         "🗑️"
@@ -360,43 +400,8 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                                 r#type: "text",
                                 value: "{filename_input}",
                                 placeholder: "Enter filename",
-                                oninput: move |event| {
-                                    filename_input.set(event.value());
-                                },
-                                onkeypress: move |event| {
-                                    if event.key() == dioxus::prelude::Key::Enter {
-                                        let filename = filename_input.read().clone();
-                                        if !filename.trim().is_empty() {
-                                            let json_content = {
-                                                let current_state = state.read();
-                                                serde_json::to_string_pretty(&current_state.the_only_document)
-                                            };
-                                            
-                                            if let Ok(json_content) = json_content {
-                                                let filename = if filename.ends_with(".json") {
-                                                    filename
-                                                } else {
-                                                    format!("{}.json", filename)
-                                                };
-                                                
-                                                match save_document(&json_content, &filename) {
-                                                    Ok(_) => {
-                                                        {
-                                                            let mut app_state = state.write();
-                                                            app_state.current_file_path = Some(PathBuf::from(&filename));
-                                                        }
-                                                        match get_saved_files() {
-                                                            Ok(files) => saved_files.set(files),
-                                                            Err(e) => eprintln!("Failed to refresh file list after save: {}", e),
-                                                        }
-                                                    }
-                                                    Err(e) => eprintln!("Failed to save document: {}", e),
-                                                }
-                                            }
-                                        }
-                                        filename_prompt_open.set(false);
-                                    }
-                                }
+                                oninput: handle_filename_input,
+                                onkeypress: handle_filename_keypress
                             }
                             div { class: "filename-hint", ".json extension will be added automatically" }
                         }

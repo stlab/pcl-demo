@@ -46,6 +46,55 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
             download_file(&json_content, "document.json");
         }
     };
+    
+    let handle_file_input_mounted = move |element: MountedEvent| {
+        if let Some(web_element) = element.downcast::<web_sys::Element>() {
+            if let Ok(input) = web_element.clone().dyn_into::<web_sys::HtmlInputElement>() {
+                *file_input_ref.write() = Some(input);
+            }
+        }
+    };
+    
+    let handle_file_change = move |_event| {
+        if let Some(input) = file_input_ref.read().as_ref() {
+            if let Some(files) = input.files() {
+                if files.length() > 0 {
+                    if let Some(file) = files.get(0) {
+                        web_sys::console::log_1(&format!("Selected file: {}", file.name()).into());
+                        
+                        let file_reader = web_sys::FileReader::new().unwrap();
+                        let mut state_clone = state.clone();
+                        
+                        let file_reader_rc = Rc::new(file_reader);
+                        let file_reader_for_closure = file_reader_rc.clone();
+                        
+                        let onload = wasm_bindgen::closure::Closure::wrap(Box::new(move |_event: web_sys::Event| {
+                            if let Ok(result) = file_reader_for_closure.result() {
+                                if let Some(text) = result.as_string() {
+                                    web_sys::console::log_1(&format!("File content read: {} chars", text.len()).into());
+                                    
+                                    match serde_json::from_str::<crate::Document>(&text) {
+                                        Ok(document) => {
+                                            web_sys::console::log_1(&"Successfully parsed document".into());
+                                            state_clone.write().the_only_document = document;
+                                            state_clone.write().current_file_path = None;
+                                        }
+                                        Err(e) => {
+                                            web_sys::console::log_1(&format!("Parse error: {}", e).into());
+                                        }
+                                    }
+                                }
+                            }
+                        }) as Box<dyn FnMut(_)>);
+                        
+                        file_reader_rc.set_onload(Some(onload.as_ref().unchecked_ref()));
+                        file_reader_rc.read_as_text(&file).unwrap();
+                        onload.forget();
+                    }
+                }
+            }
+        }
+    };
 
     rsx! {
         document::Link { rel: "stylesheet", href: FILE_MENU_CSS }
@@ -68,53 +117,8 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
                         accept: ".json",
                         style: "display: none",
                         id: "file-input-hidden",
-                        onmounted: move |element| {
-                            if let Some(web_element) = element.downcast::<web_sys::Element>() {
-                                if let Ok(input) = web_element.clone().dyn_into::<web_sys::HtmlInputElement>() {
-                                    *file_input_ref.write() = Some(input);
-                                }
-                            }
-                        },
-                        onchange: move |_event| {
-                                if let Some(input) = file_input_ref.read().as_ref() {
-                                    if let Some(files) = input.files() {
-                                        if files.length() > 0 {
-                                            if let Some(file) = files.get(0) {
-                                                web_sys::console::log_1(&format!("Selected file: {}", file.name()).into());
-                                                
-                                                let file_reader = web_sys::FileReader::new().unwrap();
-                                                let mut state_clone = state.clone();
-                                                
-                                                let file_reader_rc = Rc::new(file_reader);
-                                                let file_reader_for_closure = file_reader_rc.clone();
-                                                
-                                                let onload = wasm_bindgen::closure::Closure::wrap(Box::new(move |_event: web_sys::Event| {
-                                                    if let Ok(result) = file_reader_for_closure.result() {
-                                                        if let Some(text) = result.as_string() {
-                                                            web_sys::console::log_1(&format!("File content read: {} chars", text.len()).into());
-                                                            
-                                                            match serde_json::from_str::<crate::Document>(&text) {
-                                                                Ok(document) => {
-                                                                    web_sys::console::log_1(&"Successfully parsed document".into());
-                                                                    state_clone.write().the_only_document = document;
-                                                                    state_clone.write().current_file_path = None;
-                                                                }
-                                                                Err(e) => {
-                                                                    web_sys::console::log_1(&format!("Parse error: {}", e).into());
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }) as Box<dyn FnMut(_)>);
-                                                
-                                                file_reader_rc.set_onload(Some(onload.as_ref().unchecked_ref()));
-                                                file_reader_rc.read_as_text(&file).unwrap();
-                                                onload.forget();
-                                            }
-                                        }
-                                    }
-                                }
-                        }
+                        onmounted: handle_file_input_mounted,
+                        onchange: handle_file_change
                     }
                     
                     button {
