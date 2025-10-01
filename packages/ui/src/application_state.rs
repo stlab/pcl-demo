@@ -11,6 +11,12 @@ pub struct ApplicationState {
     pub current_file_path: Option<PathBuf>,
 }
 
+impl Default for ApplicationState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ApplicationState {
     /// Returns the state of a newly-launched application
     pub fn new() -> Self {

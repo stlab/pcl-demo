@@ -8,6 +8,12 @@ pub struct Document {
     html: String,
 }
 
+impl Default for Document {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Document {
     /// Returns a new empty document.
     pub fn new() -> Self {
@@ -20,22 +26,22 @@ impl Document {
     pub fn new_from_file<P: AsRef<Path>>(p: P) -> anyhow::Result<Self> {
         let p: &Path = p.as_ref();
 
-        let f = File::open(p).context(format!("Failed to open: {:?}", p))?;
+        let f = File::open(p).context(format!("Failed to open: {p:?}"))?;
 
-        serde_json::from_reader(f).context(format!("Invalid json: {:?}", p))
+        serde_json::from_reader(f).context(format!("Invalid json: {p:?}"))
     }
 
     /// Saves the document as `p`.
     pub fn save_to_file<P: AsRef<Path>>(&self, p: P) -> anyhow::Result<()> {
         let p: &Path = p.as_ref();
 
-        let f = File::create(p).context(format!("Failed to create: {:?}", p))?;
+        let f = File::create(p).context(format!("Failed to create: {p:?}"))?;
 
-        serde_json::to_writer_pretty(f, self).context(format!("Failed to write: {:?}", p))
+        serde_json::to_writer_pretty(f, self).context(format!("Failed to write: {p:?}"))
     }
 
     /// Returns the HTML to render `self`.
-    pub fn to_html(self: &Self) -> String {
+    pub fn to_html(&self) -> String {
         self.html.clone()
     }
 }

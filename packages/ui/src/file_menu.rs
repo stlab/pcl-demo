@@ -42,7 +42,7 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
                 download_file(&json_content, filename);
             }
             Err(e) => {
-                eprintln!("Failed to serialize document for save: {}", e);
+                eprintln!("Failed to serialize document for save: {e}");
             }
         }
     };
@@ -54,7 +54,7 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
                 download_file(&json_content, "document.json");
             }
             Err(e) => {
-                eprintln!("Failed to serialize document for save as: {}", e);
+                eprintln!("Failed to serialize document for save as: {e}");
             }
         }
     };
@@ -66,7 +66,7 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
                     *file_input_ref.write() = Some(input);
                 }
                 Err(e) => {
-                    eprintln!("Failed to cast element to HtmlInputElement: {:?}", e);
+                    eprintln!("Failed to cast element to HtmlInputElement: {e:?}");
                 }
             }
         }
@@ -82,7 +82,7 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
             log_1(&format!("Selected file: {}", file.name()).into());
 
             let file_reader = FileReader::new().unwrap();
-            let mut state_clone = state.clone();
+            let mut state_clone = state;
             let file_reader_ptr = file_reader.clone();
 
             let onload = Closure::<dyn FnMut(web_sys::Event)>::new(move |_| {
@@ -97,7 +97,7 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
                                 state_clone.write().current_file_path = None;
                             }
                             Err(e) => {
-                                eprintln!("Parse error: {}", e);
+                                eprintln!("Parse error: {e}");
                             }
                         }
                     }

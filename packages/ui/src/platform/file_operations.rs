@@ -31,7 +31,7 @@ pub fn save_document(content: &str, filename: &str) -> Result<()> {
 pub fn load_document(filename: &str) -> Result<String> {
     if cfg!(feature = "mobile") {
         load_document_from_storage(filename)
-            .with_context(|| format!("Failed to load document '{}'", filename))
+            .with_context(|| format!("Failed to load document '{filename}'"))
     } else {
         unreachable!("load_document should not be called on this platform")
     }
@@ -41,7 +41,7 @@ pub fn load_document(filename: &str) -> Result<String> {
 pub fn delete_document(filename: &str) -> Result<()> {
     if cfg!(feature = "mobile") {
         delete_document_from_storage(filename)
-            .with_context(|| format!("Failed to delete document '{}'", filename))
+            .with_context(|| format!("Failed to delete document '{filename}'"))
     } else {
         unreachable!("delete_document should not be called on this platform")
     }
@@ -58,7 +58,7 @@ fn get_file_path(filename: &str) -> PathBuf {
 /// Helper to collect JSON files from a directory
 fn collect_json_files_from_dir(storage_dir: &Path) -> Result<Vec<String>> {
     let entries = fs::read_dir(storage_dir)
-        .with_context(|| format!("Failed to read directory {:?}", storage_dir))?;
+        .with_context(|| format!("Failed to read directory {storage_dir:?}"))?;
 
     Ok(entries
         .flatten() // Convert Result<DirEntry, Error> to just DirEntry, skipping errors
@@ -105,19 +105,19 @@ pub fn save_document_to_storage(content: &str, filename: &str) -> Result<()> {
     let file_path = get_file_path(filename);
 
     fs::write(&file_path, content)
-        .with_context(|| format!("Failed to save '{}' to {:?}", filename, file_path))?;
+        .with_context(|| format!("Failed to save '{filename}' to {file_path:?}"))?;
 
     Ok(())
 }
 
 pub fn load_document_from_storage(filename: &str) -> Result<String> {
     let file_path = get_file_path(filename);
-    fs::read_to_string(&file_path).with_context(|| format!("Failed to read file '{}'", filename))
+    fs::read_to_string(&file_path).with_context(|| format!("Failed to read file '{filename}'"))
 }
 
 pub fn delete_document_from_storage(filename: &str) -> Result<()> {
     let file_path = get_file_path(filename);
-    fs::remove_file(&file_path).with_context(|| format!("Failed to delete file '{}'", filename))
+    fs::remove_file(&file_path).with_context(|| format!("Failed to delete file '{filename}'"))
 }
 
 pub fn get_saved_files() -> Result<Vec<String>> {
@@ -137,7 +137,7 @@ pub fn get_file_size_impl(filename: &str) -> Result<usize> {
     let file_path = get_file_path(filename);
     fs::metadata(&file_path)
         .map(|metadata| metadata.len() as usize)
-        .with_context(|| format!("Failed to get file size for '{}'", filename))
+        .with_context(|| format!("Failed to get file size for '{filename}'"))
 }
 
 pub fn get_storage_directory() -> PathBuf {

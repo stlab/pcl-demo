@@ -13,7 +13,7 @@ fn main() {
 #[component]
 fn AppUI() -> Element {
     // The state of the whole application
-    let state = use_signal(|| ApplicationState::new());
+    let state = use_signal(ApplicationState::new);
 
     rsx! {
         // Global app resources

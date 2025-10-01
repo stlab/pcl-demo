@@ -17,7 +17,7 @@ const MAIN_CSS: Asset = asset!("/assets/main.css");
 fn handle_file_result<T, E: Display>(result: Result<T, E>, operation: &str) {
     match result {
         Ok(_) => {}
-        Err(e) => eprintln!("Failed to {}: {}", operation, e),
+        Err(e) => eprintln!("Failed to {operation}: {e}"),
     }
 }
 
@@ -40,7 +40,7 @@ fn main() {
 #[component]
 fn AppUI() -> Element {
     // The state of the whole application
-    let mut state = use_signal(|| ApplicationState::new());
+    let mut state = use_signal(ApplicationState::new);
 
     // Handle menu events
     use_muda_event_handler(move |event| match event.id.0.as_str() {
@@ -56,10 +56,8 @@ fn AppUI() -> Element {
             let can_save = state.read().current_file_path.is_some();
             if can_save {
                 handle_file_result(state.read().save_document(), "save file");
-            } else {
-                if let Some(file_path) = PlatformDialogs::show_save_dialog() {
-                    handle_file_result(state.write().save_document_as(&file_path), "save file");
-                }
+            } else if let Some(file_path) = PlatformDialogs::show_save_dialog() {
+                handle_file_result(state.write().save_document_as(&file_path), "save file");
             }
         }
         "save_as" => {
