@@ -3,8 +3,8 @@
 //! This module provides a unified interface for file menu components across different platforms,
 //! factoring out cfg-dependent code to improve rust-analyzer support.
 
-use dioxus::prelude::*;
 use crate::application_state::ApplicationState;
+use dioxus::prelude::*;
 
 /// Render the appropriate file menu for the current platform
 pub fn render_file_menu(application_state: Signal<ApplicationState>) -> Element {

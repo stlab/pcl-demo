@@ -1,42 +1,40 @@
-use dioxus::prelude::*;
 use crate::application_state::ApplicationState;
 use crate::Document;
+use dioxus::prelude::*;
 
 // Web API imports (available on all platforms for development ease)
+use js_sys::Array;
+use serde_json::{from_str, to_string_pretty};
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::{JsCast, JsValue};
-use web_sys::{window, Blob, Url, HtmlAnchorElement, HtmlInputElement, FileReader, console::log_1};
-use js_sys::Array;
-use serde_json::{to_string_pretty, from_str};
-
-
+use web_sys::{console::log_1, window, Blob, FileReader, HtmlAnchorElement, HtmlInputElement, Url};
 
 const FILE_MENU_CSS: Asset = asset!("/assets/styling/file_menu.css");
 
 /// File menu component that provides file operations for web app
 #[component]
 pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
-    
     let mut state = application_state;
     let mut file_input_ref = use_signal(|| None::<HtmlInputElement>);
     // Store the FileReader onload closure so it doesn't leak
     let mut onload_closure = use_signal(|| None::<Closure<dyn FnMut(web_sys::Event)>>);
-    
+
     let handle_new = move |_| {
         state.write().new_document();
     };
-    
+
     let handle_open = move |_| {
         if let Some(input) = file_input_ref.read().as_ref() {
             input.click();
         }
     };
-    
+
     let handle_save = move |_| {
         let current_state = state.read();
         match to_string_pretty(&current_state.the_only_document) {
             Ok(json_content) => {
-                let filename = current_state.current_file_path
+                let filename = current_state
+                    .current_file_path
                     .as_ref()
                     .and_then(|p| p.file_name())
                     .and_then(|n| n.to_str())
@@ -48,7 +46,7 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
             }
         }
     };
-    
+
     let handle_save_as = move |_| {
         let current_state = state.read();
         match to_string_pretty(&current_state.the_only_document) {
@@ -60,7 +58,7 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
             }
         }
     };
-    
+
     let handle_file_input_mounted = move |element: MountedEvent| {
         if let Some(web_element) = element.downcast::<web_sys::Element>() {
             match web_element.clone().dyn_into::<HtmlInputElement>() {
@@ -73,9 +71,10 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
             }
         }
     };
-    
+
     let handle_file_change = move |_event| {
-        if let Some(file) = file_input_ref.read()
+        if let Some(file) = file_input_ref
+            .read()
             .as_ref()
             .and_then(|input| input.files())
             .and_then(|files| files.get(0))
@@ -107,7 +106,7 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
 
             file_reader.set_onload(Some(onload.as_ref().unchecked_ref()));
             file_reader.read_as_text(&file).unwrap();
-            
+
             *onload_closure.write() = Some(onload);
         }
     };
@@ -127,7 +126,7 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
                         onclick: handle_new,
                         "New"
                     }
-                    
+
                     input {
                         r#type: "file",
                         accept: ".json",
@@ -136,17 +135,17 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
                         onmounted: handle_file_input_mounted,
                         onchange: handle_file_change
                     }
-                    
+
                     button {
-                        class: "menu-button", 
+                        class: "menu-button",
                         title: "Open document (Ctrl+O)",
                         onclick: handle_open,
                         "Open"
                     }
-                    
+
                     button {
                         class: "menu-button",
-                        title: "Save document (Ctrl+S)", 
+                        title: "Save document (Ctrl+S)",
                         onclick: handle_save,
                         "Save"
                     }
@@ -164,35 +163,31 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
 
 // Browser API functions for file operations
 
-
-
 /// Downloads a file with the given content and filename
 fn download_file(content: &str, filename: &str) {
     let window = window().unwrap();
     let document = window.document().unwrap();
-    
+
     let array = Array::new();
     array.push(&JsValue::from_str(content));
-    
+
     let blob = Blob::new_with_str_sequence(&array).unwrap();
-    
+
     let url = Url::create_object_url_with_blob(&blob).unwrap();
-    let anchor: HtmlAnchorElement = document
-        .create_element("a")
-        .unwrap()
-        .dyn_into()
-        .unwrap();
-    
+    let anchor: HtmlAnchorElement = document.create_element("a").unwrap().dyn_into().unwrap();
+
     anchor.set_href(&url);
     anchor.set_download(filename);
     let anchor_element: &web_sys::Element = anchor.as_ref();
-    anchor_element.set_attribute("style", "display: none").unwrap();
-    
+    anchor_element
+        .set_attribute("style", "display: none")
+        .unwrap();
+
     // Append, click, and remove
     document.body().unwrap().append_child(&anchor).unwrap();
     anchor.click();
     document.body().unwrap().remove_child(&anchor).unwrap();
-    
+
     // Clean up the object URL
     Url::revoke_object_url(&url).unwrap();
 }

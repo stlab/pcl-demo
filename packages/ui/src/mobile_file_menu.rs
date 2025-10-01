@@ -1,30 +1,32 @@
-use dioxus::prelude::*;
 use crate::application_state::ApplicationState;
-use crate::platform::{get_saved_files, get_file_size_impl, save_document, load_document, delete_document, share_document_mobile};
+use crate::platform::{
+    delete_document, get_file_size_impl, get_saved_files, load_document, save_document,
+    share_document_mobile,
+};
 use crate::Document;
+use dioxus::prelude::*;
 
 // Mobile-specific imports
+use serde_json::{from_str, to_string_pretty};
 use std::path::PathBuf;
-use serde_json::{to_string_pretty, from_str};
 
 const MOBILE_FILE_MENU_CSS: Asset = asset!("/assets/styling/mobile_file_menu.css");
 
 /// Mobile file menu component with touch-optimized UI and real file operations
 #[component]
 pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
-    
     let mut state = application_state;
     let mut menu_open = use_signal(|| false);
     let mut file_list_open = use_signal(|| false);
     let mut filename_prompt_open = use_signal(|| false);
     let mut filename_input = use_signal(|| String::new());
     let mut saved_files = use_signal(|| get_saved_files().unwrap_or_default());
-    
+
     let handle_new = move |_| {
         state.write().new_document();
         menu_open.set(false);
     };
-    
+
     let handle_open = move |_| {
         match get_saved_files() {
             Ok(files) => {
@@ -41,24 +43,23 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
             }
         }
     };
-    
+
     let handle_save = move |_| {
         let current_state = state.read();
         match to_string_pretty(&current_state.the_only_document) {
             Ok(json_content) => {
-                let filename = current_state.current_file_path
+                let filename = current_state
+                    .current_file_path
                     .as_ref()
                     .and_then(|p| p.file_name())
                     .and_then(|n| n.to_str())
                     .unwrap_or("document.json");
-                
+
                 match save_document(&json_content, filename) {
-                    Ok(_) => {
-                        match get_saved_files() {
-                            Ok(files) => saved_files.set(files),
-                            Err(e) => eprintln!("Failed to refresh file list after save: {}", e),
-                        }
-                    }
+                    Ok(_) => match get_saved_files() {
+                        Ok(files) => saved_files.set(files),
+                        Err(e) => eprintln!("Failed to refresh file list after save: {}", e),
+                    },
                     Err(e) => eprintln!("Failed to save document: {}", e),
                 }
             }
@@ -68,23 +69,24 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
         }
         menu_open.set(false);
     };
-    
+
     let handle_save_as = move |_| {
         let current_name = {
             let current_state = state.read();
-            current_state.current_file_path
+            current_state
+                .current_file_path
                 .as_ref()
                 .and_then(|p| p.file_name())
                 .and_then(|n| n.to_str())
                 .unwrap_or("document")
                 .replace(".json", "")
         };
-        
+
         filename_input.set(current_name);
         filename_prompt_open.set(true);
         menu_open.set(false);
     };
-    
+
     let handle_share = move |_| {
         let current_state = state.read();
         match to_string_pretty(&current_state.the_only_document) {
@@ -97,24 +99,24 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
         }
         menu_open.set(false);
     };
-    
+
     let toggle_menu = move |_| {
         let current_state = *menu_open.read();
         menu_open.set(!current_state);
     };
-    
+
     let close_menu = move |_| {
         menu_open.set(false);
     };
-    
+
     let close_file_list = move |_| {
         file_list_open.set(false);
     };
-    
+
     let close_filename_prompt = move |_| {
         filename_prompt_open.set(false);
     };
-    
+
     let save_with_filename = move |_| {
         let filename = filename_input.read().clone();
         if !filename.trim().is_empty() {
@@ -122,7 +124,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                 let current_state = state.read();
                 to_string_pretty(&current_state.the_only_document)
             };
-            
+
             match json_content {
                 Ok(json_content) => {
                     let filename = if filename.ends_with(".json") {
@@ -130,7 +132,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                     } else {
                         format!("{}.json", filename)
                     };
-                    
+
                     match save_document(&json_content, &filename) {
                         Ok(_) => {
                             {
@@ -155,43 +157,37 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
         }
         filename_prompt_open.set(false);
     };
-    
+
     let mut handle_file_open = move |filename: String| {
         match load_document(&filename) {
-            Ok(content) => {
-                match from_str::<Document>(&content) {
-                    Ok(document) => {
-                        state.write().the_only_document = document;
-                        state.write().current_file_path = Some(PathBuf::from(&filename));
-                    }
-                    Err(e) => {
-                        eprintln!("Failed to parse document from file {}: {}", filename, e);
-                    }
+            Ok(content) => match from_str::<Document>(&content) {
+                Ok(document) => {
+                    state.write().the_only_document = document;
+                    state.write().current_file_path = Some(PathBuf::from(&filename));
                 }
-            }
+                Err(e) => {
+                    eprintln!("Failed to parse document from file {}: {}", filename, e);
+                }
+            },
             Err(e) => {
                 eprintln!("Failed to load document {}: {}", filename, e);
             }
         }
         file_list_open.set(false);
     };
-    
-    let mut handle_file_delete = move |filename: String| {
-        match delete_document(&filename) {
-            Ok(_) => {
-                match get_saved_files() {
-                    Ok(files) => saved_files.set(files),
-                    Err(e) => eprintln!("Failed to refresh file list after delete: {}", e),
-                }
-            }
-            Err(e) => eprintln!("Failed to delete document: {}", e),
-        }
+
+    let mut handle_file_delete = move |filename: String| match delete_document(&filename) {
+        Ok(_) => match get_saved_files() {
+            Ok(files) => saved_files.set(files),
+            Err(e) => eprintln!("Failed to refresh file list after delete: {}", e),
+        },
+        Err(e) => eprintln!("Failed to delete document: {}", e),
     };
-    
+
     let handle_filename_input = move |event: FormEvent| {
         filename_input.set(event.value());
     };
-    
+
     let handle_filename_keypress = move |event: KeyboardEvent| {
         if event.key() == Key::Enter {
             let filename = filename_input.read().clone();
@@ -200,7 +196,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                     let current_state = state.read();
                     to_string_pretty(&current_state.the_only_document)
                 };
-                
+
                 match json_content {
                     Ok(json_content) => {
                         let filename = if filename.ends_with(".json") {
@@ -208,7 +204,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                         } else {
                             format!("{}.json", filename)
                         };
-                        
+
                         match save_document(&json_content, &filename) {
                             Ok(_) => {
                                 {
@@ -217,7 +213,9 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                                 }
                                 match get_saved_files() {
                                     Ok(files) => saved_files.set(files),
-                                    Err(e) => eprintln!("Failed to refresh file list after save: {}", e),
+                                    Err(e) => {
+                                        eprintln!("Failed to refresh file list after save: {}", e)
+                                    }
                                 }
                             }
                             Err(e) => eprintln!("Failed to save document: {}", e),
@@ -231,15 +229,14 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
             filename_prompt_open.set(false);
         }
     };
-    
 
     rsx! {
         document::Link { rel: "stylesheet", href: MOBILE_FILE_MENU_CSS }
-        
+
         // Mobile file menu UI
         div {
             class: "mobile-file-menu",
-            
+
             // Floating Action Button for menu
             button {
                 class: "fab-menu-button",
@@ -247,7 +244,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                 title: "File Menu",
                 "⋮" // Three dots menu icon
             }
-            
+
             // Bottom sheet menu (shown when menu_open is true)
             if *menu_open.read() {
                 div {
@@ -267,7 +264,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                     }
                     div {
                         class: "menu-actions",
-                        
+
                         button {
                             class: "mobile-menu-item",
                             onclick: handle_new,
@@ -281,7 +278,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                                 div { class: "menu-item-subtitle", "Create a new document" }
                             }
                         }
-                        
+
                         button {
                             class: "mobile-menu-item",
                             onclick: handle_open,
@@ -295,7 +292,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                                 div { class: "menu-item-subtitle", "Browse saved documents ({saved_files.read().len()} files)" }
                             }
                         }
-                        
+
                         button {
                             class: "mobile-menu-item",
                             onclick: handle_save,
@@ -309,7 +306,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                                 div { class: "menu-item-subtitle", "Save current document" }
                             }
                         }
-                        
+
                         button {
                             class: "mobile-menu-item",
                             onclick: handle_save_as,
@@ -323,7 +320,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                                 div { class: "menu-item-subtitle", "Save with new name" }
                             }
                         }
-                        
+
                         button {
                             class: "mobile-menu-item mobile-menu-item-share",
                             onclick: handle_share,
@@ -340,7 +337,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                     }
                 }
             }
-            
+
             // File list modal (shown when file_list_open is true)
             if *file_list_open.read() {
                 div {
@@ -402,7 +399,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                     }
                 }
             }
-            
+
             // Filename prompt modal (shown when filename_prompt_open is true)
             if *filename_prompt_open.read() {
                 div {
@@ -424,7 +421,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                         class: "filename-prompt-content",
                         div {
                             class: "filename-prompt-field",
-                            label { 
+                            label {
                                 r#for: "filename-input",
                                 "Filename:"
                             }

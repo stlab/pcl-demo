@@ -2,10 +2,9 @@
 //!
 //! This module factors out cfg-dependent code to improve rust-analyzer support.
 
-use dioxus::desktop::muda::accelerator::{Accelerator, Modifiers, Code};
-use dioxus::desktop::muda::{Menu, MenuItem, PredefinedMenuItem, Submenu, MenuId};
+use dioxus::desktop::muda::accelerator::{Accelerator, Code, Modifiers};
+use dioxus::desktop::muda::{Menu, MenuId, MenuItem, PredefinedMenuItem, Submenu};
 use rfd::FileDialog;
-
 
 /// Platform-specific modifier key configuration
 pub struct PlatformModifiers {
@@ -20,18 +19,18 @@ impl PlatformModifiers {
             base: get_base_modifier(),
         }
     }
-    
+
     /// Create an accelerator with the base modifier and given key
     pub fn menu_key(&self, key: Code) -> Option<Accelerator> {
         Some(Accelerator::new(Some(self.base), key))
     }
-    
+
     /// Create an accelerator with custom modifiers
     #[allow(dead_code)]
     pub fn custom_key(&self, key: Code, modifiers: Modifiers) -> Option<Accelerator> {
         Some(Accelerator::new(Some(modifiers), key))
     }
-    
+
     /// Create an accelerator with base modifier plus additional modifiers
     pub fn extended_key(&self, key: Code, additional: Modifiers) -> Option<Accelerator> {
         Some(Accelerator::new(Some(self.base | additional), key))
@@ -65,7 +64,7 @@ impl PlatformDialogs {
             .set_title("Open Document")
             .pick_file()
     }
-    
+
     /// Show a save file dialog and return the selected path
     pub fn show_save_dialog() -> Option<std::path::PathBuf> {
         FileDialog::new()
@@ -83,7 +82,6 @@ pub struct PlatformMenu;
 impl PlatformMenu {
     /// Create the application menu bar with platform-appropriate structure
     pub fn create_menu_bar() -> Menu {
-        
         let menu_bar = Menu::new();
         let modifiers = PlatformModifiers::new();
 
@@ -92,19 +90,25 @@ impl PlatformMenu {
 
         // Create File submenu
         let file_menu = Submenu::new("File", true);
-        
+
         // Add File menu items with explicit IDs
         append_menu_item(&file_menu, "new", "New", modifiers.menu_key(Code::KeyN));
         append_menu_item(&file_menu, "open", "Open", modifiers.menu_key(Code::KeyO));
         append_menu_item(&file_menu, "save", "Save", modifiers.menu_key(Code::KeyS));
-        append_menu_item(&file_menu, "save_as", "Save As...", 
-                        modifiers.extended_key(Code::KeyS, Modifiers::SHIFT));
+        append_menu_item(
+            &file_menu,
+            "save_as",
+            "Save As...",
+            modifiers.extended_key(Code::KeyS, Modifiers::SHIFT),
+        );
         file_menu.append(&PredefinedMenuItem::separator()).unwrap();
-        file_menu.append(&PredefinedMenuItem::quit(Some("Quit"))).unwrap();
-        
+        file_menu
+            .append(&PredefinedMenuItem::quit(Some("Quit")))
+            .unwrap();
+
         // Add File submenu to main menu
         menu_bar.append(&file_menu).unwrap();
-        
+
         menu_bar
     }
 }
@@ -120,10 +124,12 @@ fn add_app_menu_if_needed(menu_bar: &dioxus::desktop::muda::Menu) {
 
 /// Append a menu item with the given parameters
 fn append_menu_item(
-    submenu: &dioxus::desktop::muda::Submenu, 
-    id: &str, 
-    text: &str, 
-    accelerator: Option<Accelerator>
+    submenu: &dioxus::desktop::muda::Submenu,
+    id: &str,
+    text: &str,
+    accelerator: Option<Accelerator>,
 ) {
-    submenu.append(&MenuItem::with_id(MenuId::new(id), text, true, accelerator)).unwrap();
+    submenu
+        .append(&MenuItem::with_id(MenuId::new(id), text, true, accelerator))
+        .unwrap();
 }

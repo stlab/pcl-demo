@@ -13,7 +13,6 @@ fn main() {
 /// The top-level UI element.
 #[component]
 fn AppUI() -> Element {
-
     // The state of the whole application
     let state = use_signal(|| ApplicationState::new());
 
