@@ -21,6 +21,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
     let mut filename_prompt_open = use_signal(|| false);
     let mut filename_input = use_signal(String::new);
     let mut saved_files = use_signal(|| get_saved_files().unwrap_or_default());
+    let mut error_message = use_signal(|| None::<String>);
 
     let handle_new = move |_| {
         state.write().new_document();
@@ -31,11 +32,12 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
         match get_saved_files() {
             Ok(files) => {
                 saved_files.set(files);
+                error_message.set(None);
                 file_list_open.set(true);
                 menu_open.set(false);
             }
             Err(e) => {
-                eprintln!("Failed to load saved files: {e}");
+                error_message.set(Some(format!("Failed to load saved files: {e}")));
                 // Still open the dialog but with empty list
                 saved_files.set(vec![]);
                 file_list_open.set(true);
@@ -57,14 +59,17 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
 
                 match save_document(&json_content, filename) {
                     Ok(_) => match get_saved_files() {
-                        Ok(files) => saved_files.set(files),
-                        Err(e) => eprintln!("Failed to refresh file list after save: {e}"),
+                        Ok(files) => {
+                            saved_files.set(files);
+                            error_message.set(None);
+                        }
+                        Err(e) => error_message.set(Some(format!("Failed to refresh file list after save: {e}"))),
                     },
-                    Err(e) => eprintln!("Failed to save document: {e}"),
+                    Err(e) => error_message.set(Some(format!("Failed to save document: {e}"))),
                 }
             }
             Err(e) => {
-                eprintln!("Failed to serialize document for save: {e}");
+                error_message.set(Some(format!("Failed to serialize document for save: {e}")));
             }
         }
         menu_open.set(false);
@@ -94,7 +99,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                 share_document_mobile(&json_content);
             }
             Err(e) => {
-                eprintln!("Failed to serialize document for share: {e}");
+                error_message.set(Some(format!("Failed to serialize document for share: {e}")));
             }
         }
         menu_open.set(false);
@@ -140,18 +145,21 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                                 app_state.current_file_path = Some(PathBuf::from(&filename));
                             }
                             match get_saved_files() {
-                                Ok(files) => saved_files.set(files),
-                                Err(e) => eprintln!("Failed to refresh file list: {e}"),
+                                Ok(files) => {
+                                    saved_files.set(files);
+                                    error_message.set(None);
+                                }
+                                Err(e) => error_message.set(Some(format!("Failed to refresh file list: {e}"))),
                             }
                             println!("Mobile: Saved as {filename}");
                         }
                         Err(e) => {
-                            eprintln!("Failed to save document: {e}");
+                            error_message.set(Some(format!("Failed to save document: {e}")));
                         }
                     }
                 }
                 Err(e) => {
-                    eprintln!("Failed to serialize document for save with filename: {e}");
+                    error_message.set(Some(format!("Failed to serialize document for save with filename: {e}")));
                 }
             }
         }
@@ -164,13 +172,14 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                 Ok(document) => {
                     state.write().the_only_document = document;
                     state.write().current_file_path = Some(PathBuf::from(&filename));
+                    error_message.set(None);
                 }
                 Err(e) => {
-                    eprintln!("Failed to parse document from file {filename}: {e}");
+                    error_message.set(Some(format!("Failed to parse document from file {filename}: {e}")));
                 }
             },
             Err(e) => {
-                eprintln!("Failed to load document {filename}: {e}");
+                error_message.set(Some(format!("Failed to load document {filename}: {e}")));
             }
         }
         file_list_open.set(false);
@@ -178,10 +187,13 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
 
     let mut handle_file_delete = move |filename: String| match delete_document(&filename) {
         Ok(_) => match get_saved_files() {
-            Ok(files) => saved_files.set(files),
-            Err(e) => eprintln!("Failed to refresh file list after delete: {e}"),
+            Ok(files) => {
+                saved_files.set(files);
+                error_message.set(None);
+            }
+            Err(e) => error_message.set(Some(format!("Failed to refresh file list after delete: {e}"))),
         },
-        Err(e) => eprintln!("Failed to delete document: {e}"),
+        Err(e) => error_message.set(Some(format!("Failed to delete document: {e}"))),
     };
 
     let handle_filename_input = move |event: FormEvent| {
@@ -214,15 +226,15 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                                 match get_saved_files() {
                                     Ok(files) => saved_files.set(files),
                                     Err(e) => {
-                                        eprintln!("Failed to refresh file list after save: {e}")
+                                        error_message.set(Some(format!("Failed to refresh file list after save: {e}")))
                                     }
                                 }
                             }
-                            Err(e) => eprintln!("Failed to save document: {e}"),
+                            Err(e) => error_message.set(Some(format!("Failed to save document: {e}"))),
                         }
                     }
                     Err(e) => {
-                        eprintln!("Failed to serialize document for keypress save: {e}");
+                        error_message.set(Some(format!("Failed to serialize document for keypress save: {e}")));
                     }
                 }
             }

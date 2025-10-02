@@ -18,8 +18,8 @@ use js_sys::Array;
 /// Save a document using the appropriate platform method
 pub fn save_document(content: &str, filename: &str) -> Result<()> {
     if cfg!(target_arch = "wasm32") {
-        download_file(content, filename);
-        Ok(())
+        download_file(content, filename)
+            .with_context(|| format!("Failed to download file '{filename}'"))
     } else if cfg!(feature = "mobile") {
         save_document_to_storage(content, filename)
     } else {
@@ -76,29 +76,48 @@ fn collect_json_files_from_dir(storage_dir: &Path) -> Result<Vec<String>> {
 
 // Platform-specific implementation functions
 
-fn download_file(content: &str, filename: &str) {
-    let window = window().unwrap();
-    let document = window.document().unwrap();
+fn download_file(content: &str, filename: &str) -> Result<()> {
+    let window = window()
+        .ok_or_else(|| anyhow::anyhow!("Failed to get window object - browser API unavailable"))?;
+    let document = window
+        .document()
+        .ok_or_else(|| anyhow::anyhow!("Failed to get document object - browser API unavailable"))?;
 
     let array = Array::new();
     array.push(&JsValue::from_str(content));
 
-    // Synthesize a link to the content and (programmatically) click
-    // it.
-    let blob = Blob::new_with_str_sequence(&array).unwrap();
-    let url = Url::create_object_url_with_blob(&blob).unwrap();
-    let anchor: HtmlAnchorElement = document.create_element("a").unwrap().dyn_into().unwrap();
+    // Synthesize a link to the content and (programmatically) click it
+    let blob = Blob::new_with_str_sequence(&array)
+        .map_err(|_| anyhow::anyhow!("Failed to create Blob from content"))?;
+    let url = Url::create_object_url_with_blob(&blob)
+        .map_err(|_| anyhow::anyhow!("Failed to create object URL for blob"))?;
+    let anchor: HtmlAnchorElement = document
+        .create_element("a")
+        .map_err(|_| anyhow::anyhow!("Failed to create anchor element"))?
+        .dyn_into()
+        .map_err(|_| anyhow::anyhow!("Failed to cast element to HtmlAnchorElement"))?;
 
     anchor.set_href(&url);
     anchor.set_download(filename);
     let anchor_element: &Element = anchor.as_ref();
     anchor_element
         .set_attribute("style", "display: none")
-        .unwrap();
-    document.body().unwrap().append_child(&anchor).unwrap();
+        .map_err(|_| anyhow::anyhow!("Failed to set style attribute on anchor"))?;
+    
+    let body = document
+        .body()
+        .ok_or_else(|| anyhow::anyhow!("Failed to get document body"))?;
+    
+    body.append_child(&anchor)
+        .map_err(|_| anyhow::anyhow!("Failed to append anchor to body"))?;
     anchor.click();
-    document.body().unwrap().remove_child(&anchor).unwrap();
-    Url::revoke_object_url(&url).unwrap();
+    body.remove_child(&anchor)
+        .map_err(|_| anyhow::anyhow!("Failed to remove anchor from body"))?;
+    
+    Url::revoke_object_url(&url)
+        .map_err(|_| anyhow::anyhow!("Failed to revoke object URL"))?;
+    
+    Ok(())
 }
 
 pub fn save_document_to_storage(content: &str, filename: &str) -> Result<()> {
@@ -154,7 +173,10 @@ pub fn get_storage_directory() -> PathBuf {
         };
         fs::create_dir_all(&storage_dir)
             .map(|_| storage_dir)
-            .unwrap_or_else(|_| std::env::temp_dir())
+            .unwrap_or_else(|e| {
+                eprintln!("Failed to create storage directory on iOS: {e}");
+                std::env::temp_dir()
+            })
     } else if cfg!(target_os = "android") {
         let storage_dir = if let Ok(current) = std::env::current_dir() {
             let mut dir = current;
@@ -167,14 +189,24 @@ pub fn get_storage_directory() -> PathBuf {
         };
         fs::create_dir_all(&storage_dir)
             .map(|_| storage_dir)
-            .unwrap_or_else(|_| std::env::temp_dir())
+            .unwrap_or_else(|e| {
+                eprintln!("Failed to create storage directory on Android: {e}");
+                std::env::temp_dir()
+            })
     } else {
-        let mut storage_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        let current_dir = std::env::current_dir().unwrap_or_else(|e| {
+            eprintln!("Failed to get current directory: {e}");
+            PathBuf::from(".")
+        });
+        let mut storage_dir = current_dir.clone();
         storage_dir.push("mobile_documents");
-        let fallback = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        
         fs::create_dir_all(&storage_dir)
             .map(|_| storage_dir)
-            .unwrap_or(fallback)
+            .unwrap_or_else(|e| {
+                eprintln!("Failed to create mobile_documents directory: {e}");
+                current_dir
+            })
     }
 }
 

@@ -101,13 +101,17 @@ impl PlatformMenu {
             "Save As...",
             modifiers.extended_key(Code::KeyS, Modifiers::SHIFT),
         );
-        file_menu.append(&PredefinedMenuItem::separator()).unwrap();
+        file_menu
+            .append(&PredefinedMenuItem::separator())
+            .expect("Failed to append separator to File menu");
         file_menu
             .append(&PredefinedMenuItem::quit(Some("Quit")))
-            .unwrap();
+            .expect("Failed to append Quit menu item");
 
         // Add File submenu to main menu
-        menu_bar.append(&file_menu).unwrap();
+        menu_bar
+            .append(&file_menu)
+            .expect("Failed to append File menu to menu bar");
 
         menu_bar
     }
@@ -117,7 +121,9 @@ impl PlatformMenu {
 fn add_app_menu_if_needed(menu_bar: &dioxus::desktop::muda::Menu) {
     if cfg!(target_os = "macos") {
         let app_menu = Submenu::new("CodeLess", true);
-        menu_bar.append(&app_menu).unwrap();
+        menu_bar
+            .append(&app_menu)
+            .expect("Failed to append app menu on macOS");
     }
     // No app menu needed on other platforms
 }
@@ -131,5 +137,5 @@ fn append_menu_item(
 ) {
     submenu
         .append(&MenuItem::with_id(MenuId::new(id), text, true, accelerator))
-        .unwrap();
+        .expect(&format!("Failed to append menu item '{}' to submenu", text));
 }

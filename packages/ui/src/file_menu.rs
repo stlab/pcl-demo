@@ -39,7 +39,9 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
                     .and_then(|p| p.file_name())
                     .and_then(|n| n.to_str())
                     .unwrap_or("document.json");
-                download_file(&json_content, filename);
+                if let Err(e) = download_file(&json_content, filename) {
+                    eprintln!("Failed to download file for save: {e}");
+                }
             }
             Err(e) => {
                 eprintln!("Failed to serialize document for save: {e}");
@@ -51,7 +53,9 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
         let current_state = state.read();
         match to_string_pretty(&current_state.the_only_document) {
             Ok(json_content) => {
-                download_file(&json_content, "document.json");
+                if let Err(e) = download_file(&json_content, "document.json") {
+                    eprintln!("Failed to download file for save as: {e}");
+                }
             }
             Err(e) => {
                 eprintln!("Failed to serialize document for save as: {e}");
@@ -81,7 +85,13 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
         {
             log_1(&format!("Selected file: {}", file.name()).into());
 
-            let file_reader = FileReader::new().unwrap();
+            let file_reader = match FileReader::new() {
+                Ok(reader) => reader,
+                Err(_) => {
+                    eprintln!("Failed to create FileReader - browser API unavailable");
+                    return;
+                }
+            };
             let mut state_clone = state;
             let file_reader_ptr = file_reader.clone();
 
@@ -105,7 +115,10 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
             });
 
             file_reader.set_onload(Some(onload.as_ref().unchecked_ref()));
-            file_reader.read_as_text(&file).unwrap();
+            if let Err(_) = file_reader.read_as_text(&file) {
+                eprintln!("Failed to read file as text");
+                return;
+            }
 
             *onload_closure.write() = Some(onload);
         }
@@ -164,30 +177,48 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
 // Browser API functions for file operations
 
 /// Downloads a file with the given content and filename
-fn download_file(content: &str, filename: &str) {
-    let window = window().unwrap();
-    let document = window.document().unwrap();
+fn download_file(content: &str, filename: &str) -> Result<(), String> {
+    let window = window()
+        .ok_or_else(|| "Failed to get window object - browser API unavailable".to_string())?;
+    let document = window
+        .document()
+        .ok_or_else(|| "Failed to get document object - browser API unavailable".to_string())?;
 
     let array = Array::new();
     array.push(&JsValue::from_str(content));
 
-    let blob = Blob::new_with_str_sequence(&array).unwrap();
+    let blob = Blob::new_with_str_sequence(&array)
+        .map_err(|_| "Failed to create Blob from content".to_string())?;
 
-    let url = Url::create_object_url_with_blob(&blob).unwrap();
-    let anchor: HtmlAnchorElement = document.create_element("a").unwrap().dyn_into().unwrap();
+    let url = Url::create_object_url_with_blob(&blob)
+        .map_err(|_| "Failed to create object URL for blob".to_string())?;
+    let anchor: HtmlAnchorElement = document
+        .create_element("a")
+        .map_err(|_| "Failed to create anchor element".to_string())?
+        .dyn_into()
+        .map_err(|_| "Failed to cast element to HtmlAnchorElement".to_string())?;
 
     anchor.set_href(&url);
     anchor.set_download(filename);
     let anchor_element: &web_sys::Element = anchor.as_ref();
     anchor_element
         .set_attribute("style", "display: none")
-        .unwrap();
+        .map_err(|_| "Failed to set style attribute on anchor".to_string())?;
+
+    let body = document
+        .body()
+        .ok_or_else(|| "Failed to get document body".to_string())?;
 
     // Append, click, and remove
-    document.body().unwrap().append_child(&anchor).unwrap();
+    body.append_child(&anchor)
+        .map_err(|_| "Failed to append anchor to body".to_string())?;
     anchor.click();
-    document.body().unwrap().remove_child(&anchor).unwrap();
+    body.remove_child(&anchor)
+        .map_err(|_| "Failed to remove anchor from body".to_string())?;
 
     // Clean up the object URL
-    Url::revoke_object_url(&url).unwrap();
+    Url::revoke_object_url(&url)
+        .map_err(|_| "Failed to revoke object URL".to_string())?;
+
+    Ok(())
 }
