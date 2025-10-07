@@ -33,7 +33,7 @@ rustup target add armv7-linux-androideabi  # Android ARM32
 
 # Running the app
 
-From the top-level directory:
+From the top-level directory, where \<package-name> is `web`, `desktop`, or `mobile`:
 
 ```bash
 dx serve --package <package-name>

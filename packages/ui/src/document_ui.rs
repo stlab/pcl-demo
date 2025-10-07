@@ -1,11 +1,6 @@
+use crate::application_state::ApplicationState;
+use crate::platform::render_file_menu;
 use dioxus::prelude::*;
-use crate::application_state::*;
-
-#[cfg(target_arch = "wasm32")]
-use crate::file_menu::FileMenu;
-
-#[cfg(feature = "mobile")]
-use crate::mobile_file_menu::MobileFileMenu;
 
 const DOCUMENT_CSS: Asset = asset!("/assets/styling/document.css");
 
@@ -14,7 +9,7 @@ const DOCUMENT_CSS: Asset = asset!("/assets/styling/document.css");
 fn render_file_menu(application_state: Signal<ApplicationState>) -> Element {
     rsx! {
         FileMenu { application_state }
-        crate::shapes_ui::SvgCanvasDiv { }
+      crate::shapes_ui::SvgCanvasDiv { }
     }
 }
 
@@ -33,16 +28,15 @@ fn render_file_menu(_application_state: Signal<ApplicationState>) -> Element {
 /// The UI element that describes a document.
 #[component]
 pub fn DocumentUI(application_state: Signal<ApplicationState>) -> Element {
-
     // Convert the document to something we can display.
     let html = application_state.read().the_only_document.to_html();
 
     rsx! {
         document::Link { rel: "stylesheet", href: DOCUMENT_CSS }
-        
+
         // Show appropriate file menu for each platform
         {render_file_menu(application_state)}
-        
+
         div {
             id: "document",
             dangerous_inner_html: html
