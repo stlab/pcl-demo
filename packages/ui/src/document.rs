@@ -5,6 +5,7 @@ use std::{fs::File, path::Path};
 /// In-memory representation of a pcl-demo document.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Document {
+    /// The content in HTML form.
     html: String,
 }
 

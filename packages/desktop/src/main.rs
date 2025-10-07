@@ -10,7 +10,7 @@ use ui::{ApplicationState, DocumentUI};
 mod platform;
 use platform::{PlatformDialogs, PlatformMenu};
 
-/// The top-level stylesheet for the application.
+/// The application's top-level style.
 const MAIN_CSS: Asset = asset!("/assets/main.css");
 
 /// Helper function to handle file operation results with consistent error reporting
@@ -36,7 +36,7 @@ fn main() {
         .launch(AppUI);
 }
 
-/// The top-level UI element.
+/// The application's top-level UI element.
 #[component]
 fn AppUI() -> Element {
     // The state of the whole application
