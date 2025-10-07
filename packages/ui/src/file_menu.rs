@@ -9,9 +9,7 @@ use wasm_bindgen::closure::Closure;
 use wasm_bindgen::{JsCast, JsValue};
 use web_sys::{console::log_1, window, Blob, FileReader, HtmlAnchorElement, HtmlInputElement, Url};
 
-const FILE_MENU_CSS: Asset = asset!("/assets/styling/file_menu.css");
-
-/// File menu component that provides file operations for web app
+/// The web app's file menu.
 #[component]
 pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
     let mut state = application_state;
@@ -125,7 +123,7 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
     };
 
     rsx! {
-        document::Link { rel: "stylesheet", href: FILE_MENU_CSS }
+        document::Link { rel: "stylesheet", href: asset!("/assets/styling/file_menu.css") }
         div {
             class: "file-menu",
             div {
@@ -176,7 +174,7 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
 
 // Browser API functions for file operations
 
-/// Downloads a file with the given content and filename
+/// Saves a file called `filename` containing `content`.
 fn download_file(content: &str, filename: &str) -> Result<(), String> {
     let window = window()
         .ok_or_else(|| "Failed to get window object - browser API unavailable".to_string())?;
@@ -217,8 +215,7 @@ fn download_file(content: &str, filename: &str) -> Result<(), String> {
         .map_err(|_| "Failed to remove anchor from body".to_string())?;
 
     // Clean up the object URL
-    Url::revoke_object_url(&url)
-        .map_err(|_| "Failed to revoke object URL".to_string())?;
+    Url::revoke_object_url(&url).map_err(|_| "Failed to revoke object URL".to_string())?;
 
     Ok(())
 }

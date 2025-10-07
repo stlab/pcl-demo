@@ -18,7 +18,7 @@ impl Default for ApplicationState {
 }
 
 impl ApplicationState {
-    /// Returns the state of a newly-launched application
+    /// Returns the state of a newly-launched application.
     pub fn new() -> Self {
         // Start with a default document
         Self {
@@ -27,20 +27,20 @@ impl ApplicationState {
         }
     }
 
-    /// Creates a new document
+    /// Creates a new document.
     pub fn new_document(&mut self) {
         self.the_only_document = Document::new();
         self.current_file_path = None;
     }
 
-    /// Loads a document from the specified path
+    /// Loads a document from `path`.
     pub fn load_document(&mut self, path: &Path) -> anyhow::Result<()> {
         self.the_only_document = Document::new_from_file(path)?;
         self.current_file_path = Some(path.to_path_buf());
         Ok(())
     }
 
-    /// Saves the current document to its current path
+    /// Saves the current document.
     pub fn save_document(&self) -> anyhow::Result<()> {
         if let Some(path) = &self.current_file_path {
             self.the_only_document.save_to_file(path)
@@ -49,7 +49,7 @@ impl ApplicationState {
         }
     }
 
-    /// Saves the current document to a new path
+    /// Saves the current document in `path`.
     pub fn save_document_as(&mut self, path: &Path) -> anyhow::Result<()> {
         self.the_only_document.save_to_file(path)?;
         self.current_file_path = Some(path.to_path_buf());

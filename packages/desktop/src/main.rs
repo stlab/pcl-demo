@@ -10,10 +10,7 @@ use ui::{ApplicationState, DocumentUI};
 mod platform;
 use platform::{PlatformDialogs, PlatformMenu};
 
-/// The application's top-level style.
-const MAIN_CSS: Asset = asset!("/assets/main.css");
-
-/// Helper function to handle file operation results with consistent error reporting
+/// Handles `result` with consistent error reporting for `operation`.
 fn handle_file_result<T, E: Display>(result: Result<T, E>, operation: &str) {
     match result {
         Ok(_) => {}
@@ -48,7 +45,7 @@ fn AppUI() -> Element {
             state.write().new_document();
         }
         "open" => {
-            if let Some(file_path) = PlatformDialogs::show_open_dialog() {
+            if let Some(file_path) = PlatformDialogs::file_from_open_dialog() {
                 handle_file_result(state.write().load_document(&file_path), "open file");
             }
         }
@@ -56,12 +53,12 @@ fn AppUI() -> Element {
             let can_save = state.read().current_file_path.is_some();
             if can_save {
                 handle_file_result(state.read().save_document(), "save file");
-            } else if let Some(file_path) = PlatformDialogs::show_save_dialog() {
+            } else if let Some(file_path) = PlatformDialogs::path_from_save_dialog() {
                 handle_file_result(state.write().save_document_as(&file_path), "save file");
             }
         }
         "save_as" => {
-            if let Some(file_path) = PlatformDialogs::show_save_dialog() {
+            if let Some(file_path) = PlatformDialogs::path_from_save_dialog() {
                 handle_file_result(state.write().save_document_as(&file_path), "save file");
             }
         }
@@ -72,7 +69,7 @@ fn AppUI() -> Element {
 
     rsx! {
         // Global app resources
-        document::Link { rel: "stylesheet", href: MAIN_CSS }
+        document::Link { rel: "stylesheet", href: asset!("/assets/main.css") }
 
         DocumentUI { application_state: state }
 

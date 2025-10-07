@@ -23,7 +23,7 @@ impl Document {
         }
     }
 
-    /// Returns the in-memory representation of the document at `p`.
+    /// Returns the document at `p`.
     pub fn new_from_file<P: AsRef<Path>>(p: P) -> anyhow::Result<Self> {
         let p: &Path = p.as_ref();
 

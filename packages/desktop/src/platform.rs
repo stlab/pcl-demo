@@ -6,58 +6,47 @@ use dioxus::desktop::muda::accelerator::{Accelerator, Code, Modifiers};
 use dioxus::desktop::muda::{Menu, MenuId, MenuItem, PredefinedMenuItem, Submenu};
 use rfd::FileDialog;
 
-/// Platform-specific modifier key configuration
+/// Platform-specific modifier key configuration.
 pub struct PlatformModifiers {
     /// The base modifier key for menu shortcuts (Cmd on macOS, Ctrl elsewhere)
     pub base: Modifiers,
 }
 
 impl PlatformModifiers {
-    /// Get the platform-appropriate modifier configuration
+    /// Returns the platform-appropriate modifier configuration.
     pub fn new() -> Self {
         Self {
-            base: get_base_modifier(),
+            base: if cfg!(target_os = "macos") {
+                Modifiers::META
+            } else {
+                Modifiers::CONTROL
+            },
         }
     }
 
-    /// Create an accelerator with the base modifier and given key
+    /// Returns an accelerator triggered by `key` with `base` modifier.
     pub fn menu_key(&self, key: Code) -> Option<Accelerator> {
         Some(Accelerator::new(Some(self.base), key))
     }
 
-    /// Create an accelerator with custom modifiers
+    /// Returns an accelerator triggered by `key` with `modifiers`.
     #[allow(dead_code)]
     pub fn custom_key(&self, key: Code, modifiers: Modifiers) -> Option<Accelerator> {
         Some(Accelerator::new(Some(modifiers), key))
     }
 
-    /// Create an accelerator with base modifier plus additional modifiers
+    /// Returns an accelerator triggered by `key` with `base` plus `additional` modifiers.
     pub fn extended_key(&self, key: Code, additional: Modifiers) -> Option<Accelerator> {
         Some(Accelerator::new(Some(self.base | additional), key))
     }
 }
 
-impl Default for PlatformModifiers {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-/// Get the base modifier key for the current platform
-fn get_base_modifier() -> Modifiers {
-    if cfg!(target_os = "macos") {
-        Modifiers::META
-    } else {
-        Modifiers::CONTROL
-    }
-}
-
-/// Platform-specific file dialog operations
+/// Platform-specific file dialog operations.
 pub struct PlatformDialogs;
 
 impl PlatformDialogs {
-    /// Show an open file dialog and return the selected path
-    pub fn show_open_dialog() -> Option<std::path::PathBuf> {
+    /// Presents an open file dialog and returns the user's selection (or `None` if canceled).
+    pub fn file_from_open_dialog() -> Option<std::path::PathBuf> {
         FileDialog::new()
             .add_filter("JSON Documents", &["json"])
             .add_filter("All Files", &["*"])
@@ -65,8 +54,8 @@ impl PlatformDialogs {
             .pick_file()
     }
 
-    /// Show a save file dialog and return the selected path
-    pub fn show_save_dialog() -> Option<std::path::PathBuf> {
+    /// Presents a save file dialog and returns the user's selection (or `None` if canceled).
+    pub fn path_from_save_dialog() -> Option<std::path::PathBuf> {
         FileDialog::new()
             .add_filter("JSON Documents", &["json"])
             .add_filter("All Files", &["*"])
@@ -76,11 +65,11 @@ impl PlatformDialogs {
     }
 }
 
-/// Platform-specific menu creation utilities
+/// Platform-specific menu creation utilities.
 pub struct PlatformMenu;
 
 impl PlatformMenu {
-    /// Create the application menu bar with platform-appropriate structure
+    /// Returns the application menu bar.
     pub fn create_menu_bar() -> Menu {
         let menu_bar = Menu::new();
         let modifiers = PlatformModifiers::new();
@@ -117,7 +106,7 @@ impl PlatformMenu {
     }
 }
 
-/// Add application menu on macOS to ensure File menu shows correctly
+/// Adds application menu on macOS to ensure File menu shows correctly.
 fn add_app_menu_if_needed(menu_bar: &dioxus::desktop::muda::Menu) {
     if cfg!(target_os = "macos") {
         let app_menu = Submenu::new("CodeLess", true);
@@ -128,7 +117,7 @@ fn add_app_menu_if_needed(menu_bar: &dioxus::desktop::muda::Menu) {
     // No app menu needed on other platforms
 }
 
-/// Append a menu item with the given parameters
+/// Appends a menu item with the given parameters.
 fn append_menu_item(
     submenu: &dioxus::desktop::muda::Submenu,
     id: &str,

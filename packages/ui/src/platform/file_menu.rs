@@ -6,7 +6,7 @@
 use crate::application_state::ApplicationState;
 use dioxus::prelude::*;
 
-/// Render the appropriate file menu for the current platform
+/// Renders the file menu for the current platform.
 pub fn render_file_menu(application_state: Signal<ApplicationState>) -> Element {
     if cfg!(target_arch = "wasm32") {
         rsx! {

@@ -10,9 +10,7 @@ use dioxus::prelude::*;
 use serde_json::{from_str, to_string_pretty};
 use std::path::PathBuf;
 
-const MOBILE_FILE_MENU_CSS: Asset = asset!("/assets/styling/mobile_file_menu.css");
-
-/// Mobile file menu component with touch-optimized UI and real file operations
+/// The mobile app's file menu.
 #[component]
 pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
     let mut state = application_state;
@@ -63,7 +61,8 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                             saved_files.set(files);
                             error_message.set(None);
                         }
-                        Err(e) => error_message.set(Some(format!("Failed to refresh file list after save: {e}"))),
+                        Err(e) => error_message
+                            .set(Some(format!("Failed to refresh file list after save: {e}"))),
                     },
                     Err(e) => error_message.set(Some(format!("Failed to save document: {e}"))),
                 }
@@ -149,7 +148,8 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                                     saved_files.set(files);
                                     error_message.set(None);
                                 }
-                                Err(e) => error_message.set(Some(format!("Failed to refresh file list: {e}"))),
+                                Err(e) => error_message
+                                    .set(Some(format!("Failed to refresh file list: {e}"))),
                             }
                             println!("Mobile: Saved as {filename}");
                         }
@@ -159,7 +159,9 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                     }
                 }
                 Err(e) => {
-                    error_message.set(Some(format!("Failed to serialize document for save with filename: {e}")));
+                    error_message.set(Some(format!(
+                        "Failed to serialize document for save with filename: {e}"
+                    )));
                 }
             }
         }
@@ -175,7 +177,9 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                     error_message.set(None);
                 }
                 Err(e) => {
-                    error_message.set(Some(format!("Failed to parse document from file {filename}: {e}")));
+                    error_message.set(Some(format!(
+                        "Failed to parse document from file {filename}: {e}"
+                    )));
                 }
             },
             Err(e) => {
@@ -191,7 +195,9 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                 saved_files.set(files);
                 error_message.set(None);
             }
-            Err(e) => error_message.set(Some(format!("Failed to refresh file list after delete: {e}"))),
+            Err(e) => error_message.set(Some(format!(
+                "Failed to refresh file list after delete: {e}"
+            ))),
         },
         Err(e) => error_message.set(Some(format!("Failed to delete document: {e}"))),
     };
@@ -225,16 +231,20 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                                 }
                                 match get_saved_files() {
                                     Ok(files) => saved_files.set(files),
-                                    Err(e) => {
-                                        error_message.set(Some(format!("Failed to refresh file list after save: {e}")))
-                                    }
+                                    Err(e) => error_message.set(Some(format!(
+                                        "Failed to refresh file list after save: {e}"
+                                    ))),
                                 }
                             }
-                            Err(e) => error_message.set(Some(format!("Failed to save document: {e}"))),
+                            Err(e) => {
+                                error_message.set(Some(format!("Failed to save document: {e}")))
+                            }
                         }
                     }
                     Err(e) => {
-                        error_message.set(Some(format!("Failed to serialize document for keypress save: {e}")));
+                        error_message.set(Some(format!(
+                            "Failed to serialize document for keypress save: {e}"
+                        )));
                     }
                 }
             }
@@ -243,7 +253,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
     };
 
     rsx! {
-        document::Link { rel: "stylesheet", href: MOBILE_FILE_MENU_CSS }
+        document::Link { rel: "stylesheet", href: asset!("/assets/styling/mobile_file_menu.css") }
 
         // Mobile file menu UI
         div {
