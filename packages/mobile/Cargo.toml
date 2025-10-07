@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 dioxus = { workspace = true, features = [] }
-ui = { workspace = true }
+ui = { workspace = true, features = ["mobile"] }
 
 [features]
 default = ["mobile"]

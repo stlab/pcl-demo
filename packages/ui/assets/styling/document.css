@@ -1,5 +1,7 @@
 #document {
   margin: 0;
+  padding: 20px;
+  min-height: calc(100vh - 50px); /* Account for file menu height */
   display: flex;
   flex-direction: column;
   justify-content: center;
