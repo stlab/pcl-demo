@@ -1,5 +1,4 @@
 use crate::application_state::ApplicationState;
-use crate::platform::render_file_menu;
 use dioxus::prelude::*;
 
 const DOCUMENT_CSS: Asset = asset!("/assets/styling/document.css");
@@ -8,14 +7,14 @@ const DOCUMENT_CSS: Asset = asset!("/assets/styling/document.css");
 #[cfg(target_arch = "wasm32")]
 fn render_file_menu(application_state: Signal<ApplicationState>) -> Element {
     rsx! {
-        FileMenu { application_state }
+        crate::file_menu::FileMenu { application_state }
     }
 }
 
 #[cfg(feature = "mobile")]
 fn render_file_menu(application_state: Signal<ApplicationState>) -> Element {
     rsx! {
-        MobileFileMenu { application_state }
+        crate::mobile_file_menu::MobileFileMenu { application_state }
     }
 }
 
