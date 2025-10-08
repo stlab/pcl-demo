@@ -313,6 +313,12 @@ write:
 
 * Avoid implementing `Default` trait when it just calls `new()` - it adds no value
 
+### Code Organization
+
+* Avoid creating "namespace structs" - empty structs that only serve as containers for static methods. Use standalone functions or proper abstractions instead:
+  ```rust
+  // BAD: Fake abstraction - just a namespace
+  pub struct PlatformDialogs;
   impl PlatformDialogs {
       pub fn file_from_open_dialog() -> Option<PathBuf> { ... }
   }
@@ -326,6 +332,35 @@ write:
   - Behavior that operates on that state
   - Multiple implementations (traits)
   - Clear lifetime or ownership semantics
+
+* Use specific imports to eliminate explicit qualification:
+  ```rust
+  // BAD: Explicit qualification throughout code
+  use std::path;
+  fn open() -> Option<path::PathBuf> { ... }
+  
+  // GOOD: Import specific types and use them directly
+  use std::path::PathBuf;
+  fn open() -> Option<PathBuf> { ... }
+  ```
+  
+  ```rust
+  // BAD: Module qualification in calling code
+  mod platform;
+  fn main() {
+      let menu = platform::create_menu_bar();
+      let file = platform::file_from_open_dialog();
+  }
+  
+  // GOOD: Import specific functions
+  mod platform;
+  use platform::{create_menu_bar, file_from_open_dialog};
+  fn main() {
+      let menu = create_menu_bar();
+      let file = file_from_open_dialog();
+  }
+  ```
+
 ### Testing
 
 You can test that the code builds with `dx build --package desktop`.  Because we have no conditional compilation there's no need to build other targets to check for compile errors.
