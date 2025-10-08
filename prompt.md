@@ -313,6 +313,17 @@ write:
 
 * Avoid implementing `Default` trait when it just calls `new()` - it adds no value
 
+* Don't use function names starting with `get_`. Functions that return values should have simple, direct names:
+  ```rust
+  // BAD: Unnecessary get_ prefix
+  fn get_saved_files() -> Vec<String> { ... }
+  fn get_file_size(filename: &str) -> usize { ... }
+  
+  // GOOD: Direct, clear names
+  fn saved_files() -> Vec<String> { ... }
+  fn file_size(filename: &str) -> usize { ... }
+  ```
+
 ### Code Organization
 
 * Avoid creating "namespace structs" - empty structs that only serve as containers for static methods. Use standalone functions or proper abstractions instead:

@@ -1,7 +1,6 @@
 use crate::application_state::ApplicationState;
 use crate::platform::{
-    delete_document, get_file_size_impl, get_saved_files, load_document, save_document,
-    share_document_mobile,
+    delete_document, file_size, load_document, save_document, saved_files, share_document_mobile,
 };
 use crate::Document;
 use dioxus::prelude::*;
@@ -18,7 +17,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
     let mut file_list_open = use_signal(|| false);
     let mut filename_prompt_open = use_signal(|| false);
     let mut filename_input = use_signal(String::new);
-    let mut saved_files = use_signal(|| get_saved_files().unwrap_or_default());
+    let mut saved_files_list = use_signal(|| saved_files().unwrap_or_default());
     let mut error_message = use_signal(|| None::<String>);
 
     let handle_new = move |_| {
@@ -27,9 +26,9 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
     };
 
     let handle_open = move |_| {
-        match get_saved_files() {
+        match saved_files() {
             Ok(files) => {
-                saved_files.set(files);
+                saved_files_list.set(files);
                 error_message.set(None);
                 file_list_open.set(true);
                 menu_open.set(false);
@@ -37,7 +36,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
             Err(e) => {
                 error_message.set(Some(format!("Failed to load saved files: {e}")));
                 // Still open the dialog but with empty list
-                saved_files.set(vec![]);
+                saved_files_list.set(vec![]);
                 file_list_open.set(true);
                 menu_open.set(false);
             }
@@ -56,9 +55,9 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                     .unwrap_or("document.json");
 
                 match save_document(&json_content, filename) {
-                    Ok(_) => match get_saved_files() {
+                    Ok(_) => match saved_files() {
                         Ok(files) => {
-                            saved_files.set(files);
+                            saved_files_list.set(files);
                             error_message.set(None);
                         }
                         Err(e) => error_message
@@ -143,9 +142,9 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                                 let mut app_state = state.write();
                                 app_state.current_file_path = Some(PathBuf::from(&filename));
                             }
-                            match get_saved_files() {
+                            match saved_files() {
                                 Ok(files) => {
-                                    saved_files.set(files);
+                                    saved_files_list.set(files);
                                     error_message.set(None);
                                 }
                                 Err(e) => error_message
@@ -190,9 +189,9 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
     };
 
     let mut handle_file_delete = move |filename: String| match delete_document(&filename) {
-        Ok(_) => match get_saved_files() {
+        Ok(_) => match saved_files() {
             Ok(files) => {
-                saved_files.set(files);
+                saved_files_list.set(files);
                 error_message.set(None);
             }
             Err(e) => error_message.set(Some(format!(
@@ -229,8 +228,8 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                                     let mut app_state = state.write();
                                     app_state.current_file_path = Some(PathBuf::from(&filename));
                                 }
-                                match get_saved_files() {
-                                    Ok(files) => saved_files.set(files),
+                                match saved_files() {
+                                    Ok(files) => saved_files_list.set(files),
                                     Err(e) => error_message.set(Some(format!(
                                         "Failed to refresh file list after save: {e}"
                                     ))),
@@ -311,7 +310,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                             div {
                                 class: "menu-item-content",
                                 div { class: "menu-item-title", "Open" }
-                                div { class: "menu-item-subtitle", "Browse saved documents ({saved_files.read().len()} files)" }
+                                div { class: "menu-item-subtitle", "Browse saved documents ({saved_files_list.read().len()} files)" }
                             }
                         }
 
@@ -379,7 +378,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                     }
                     div {
                         class: "file-list-content",
-                        if saved_files.read().is_empty() {
+                        if saved_files_list.read().is_empty() {
                             div {
                                 class: "empty-state",
                                 div { class: "empty-icon", "📄" }
@@ -387,7 +386,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                                 div { class: "empty-subtitle", "Create and save a document to see it here" }
                             }
                         } else {
-                            for filename in saved_files.read().iter() {
+                            for filename in saved_files_list.read().iter() {
                                 div {
                                     class: "file-item",
                                     button {
@@ -403,7 +402,7 @@ pub fn MobileFileMenu(application_state: Signal<ApplicationState>) -> Element {
                                         div {
                                             class: "file-item-info",
                                             div { class: "file-item-name", "{filename}" }
-                                            div { class: "file-item-size", "{get_file_size_impl(filename).unwrap_or(0)} bytes" }
+                                            div { class: "file-item-size", "{file_size(filename).unwrap_or(0)} bytes" }
                                         }
                                     }
                                     button {

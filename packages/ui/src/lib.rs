@@ -5,8 +5,8 @@ pub use document_ui::DocumentUI;
 
 mod platform;
 pub use platform::{
-    delete_document, get_file_size_impl, get_saved_files, load_document, render_file_menu,
-    save_document, share_document_mobile,
+    delete_document, file_size, load_document, render_file_menu, save_document, saved_files,
+    share_document_mobile,
 };
 
 // Platform-specific modules - now available on all platforms for better rust-analyzer support

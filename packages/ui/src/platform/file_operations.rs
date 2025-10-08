@@ -50,8 +50,8 @@ pub fn delete_document(filename: &str) -> Result<()> {
 // Helper functions for common operations
 
 /// Returns the full path for `filename` in the storage directory.
-fn get_file_path(filename: &str) -> PathBuf {
-    let storage_dir = get_storage_directory();
+fn file_path(filename: &str) -> PathBuf {
+    let storage_dir = storage_directory();
     storage_dir.join(filename)
 }
 
@@ -122,29 +122,29 @@ fn download_file(content: &str, filename: &str) -> Result<()> {
 
 /// Saves `content` as `filename` to storage.
 pub fn save_document_to_storage(content: &str, filename: &str) -> Result<()> {
-    let file_path = get_file_path(filename);
+    let path = file_path(filename);
 
-    fs::write(&file_path, content)
-        .with_context(|| format!("Failed to save '{filename}' to {file_path:?}"))?;
+    fs::write(&path, content)
+        .with_context(|| format!("Failed to save '{filename}' to {path:?}"))?;
 
     Ok(())
 }
 
 /// Returns the content of the file named `filename`.
 pub fn load_document_from_storage(filename: &str) -> Result<String> {
-    let file_path = get_file_path(filename);
-    fs::read_to_string(&file_path).with_context(|| format!("Failed to read file '{filename}'"))
+    let path = file_path(filename);
+    fs::read_to_string(&path).with_context(|| format!("Failed to read file '{filename}'"))
 }
 
 /// Deletes the file named `filename`.
 pub fn delete_document_from_storage(filename: &str) -> Result<()> {
-    let file_path = get_file_path(filename);
-    fs::remove_file(&file_path).with_context(|| format!("Failed to delete file '{filename}'"))
+    let path = file_path(filename);
+    fs::remove_file(&path).with_context(|| format!("Failed to delete file '{filename}'"))
 }
 
 /// Returns the names of all saved files.
-pub fn get_saved_files() -> Result<Vec<String>> {
-    let storage_dir = get_storage_directory();
+pub fn saved_files() -> Result<Vec<String>> {
+    let storage_dir = storage_directory();
     let mut files = collect_json_files_from_dir(&storage_dir)?;
 
     if files.is_empty() {
@@ -157,15 +157,15 @@ pub fn get_saved_files() -> Result<Vec<String>> {
 }
 
 /// Returns the size of the file named `filename`.
-pub fn get_file_size_impl(filename: &str) -> Result<usize> {
-    let file_path = get_file_path(filename);
-    fs::metadata(&file_path)
+pub fn file_size(filename: &str) -> Result<usize> {
+    let path = file_path(filename);
+    fs::metadata(&path)
         .map(|metadata| metadata.len() as usize)
         .with_context(|| format!("Failed to get file size for '{filename}'"))
 }
 
 /// Returns the storage directory path.
-pub fn get_storage_directory() -> PathBuf {
+pub fn storage_directory() -> PathBuf {
     if cfg!(target_os = "ios") {
         let storage_dir = if let Some(home) = std::env::var_os("HOME") {
             let mut dir = PathBuf::from(home);
