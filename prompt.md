@@ -312,6 +312,20 @@ write:
   ```
 
 * Avoid implementing `Default` trait when it just calls `new()` - it adds no value
+
+  impl PlatformDialogs {
+      pub fn file_from_open_dialog() -> Option<PathBuf> { ... }
+  }
+  
+  // GOOD: Standalone function
+  pub fn file_from_open_dialog() -> Option<PathBuf> { ... }
+  ```
+
+* Only create structs/types when they represent actual abstractions with:
+  - State that needs to be maintained
+  - Behavior that operates on that state
+  - Multiple implementations (traits)
+  - Clear lifetime or ownership semantics
 ### Testing
 
 You can test that the code builds with `dx build --package desktop`.  Because we have no conditional compilation there's no need to build other targets to check for compile errors.
