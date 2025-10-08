@@ -9,7 +9,6 @@ const DOCUMENT_CSS: Asset = asset!("/assets/styling/document.css");
 fn render_file_menu(application_state: Signal<ApplicationState>) -> Element {
     rsx! {
         FileMenu { application_state }
-      crate::shapes_ui::SvgCanvasDiv { }
     }
 }
 
@@ -37,9 +36,7 @@ pub fn DocumentUI(application_state: Signal<ApplicationState>) -> Element {
         // Show appropriate file menu for each platform
         {render_file_menu(application_state)}
 
-        div {
-            id: "document",
-            dangerous_inner_html: html
-        }
+        // Show the SVG canvas
+        crate::shapes_ui::SvgCanvasDiv { }
     }
 }
