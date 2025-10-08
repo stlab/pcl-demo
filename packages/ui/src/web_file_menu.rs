@@ -11,7 +11,7 @@ use web_sys::{console::log_1, window, Blob, FileReader, HtmlAnchorElement, HtmlI
 
 /// The web app's file menu.
 #[component]
-pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
+pub fn WebFileMenu(application_state: Signal<ApplicationState>) -> Element {
     let mut state = application_state;
     let mut file_input_ref = use_signal(|| None::<HtmlInputElement>);
     // Store the FileReader onload closure so it doesn't leak

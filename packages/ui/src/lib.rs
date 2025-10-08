@@ -10,8 +10,8 @@ pub use platform::{
 };
 
 // Platform-specific modules - now available on all platforms for better rust-analyzer support
-mod file_menu;
 mod mobile_file_menu;
+mod web_file_menu;
 
 mod application_state;
 pub use application_state::ApplicationState;
