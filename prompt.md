@@ -283,6 +283,35 @@ write:
     /// Saves the document as `p`.
     pub fn save_to_file<P: AsRef<Path>>(&self, p: P) -> anyhow::Result<()> {
 ```
+
+**Key documentation conventions:**
+
+* Functions that **return** values should be documented as "Returns xxx", not "Creates xxx":
+  ```rust
+  /// Returns an accelerator triggered by `key` with `base` modifier.
+  pub fn menu_key(&self, key: Code) -> Option<Accelerator>
+  ```
+
+* Functions with **side effects** should describe the action, not just the return value:
+  ```rust
+  /// Presents an open file dialog and returns the user's selection (or `None` if canceled).
+  pub fn file_from_open_dialog() -> Option<std::path::PathBuf>
+  ```
+
+* Use precise names that reflect semantics:
+  - `file_from_open_dialog()` - returns an existing file
+  - `path_from_save_dialog()` - returns a path (may not exist yet)
+
+* Avoid unnecessary constants for single-use values; prefer inline `asset!()` calls:
+  ```rust
+  // Good
+  document::Link { rel: "stylesheet", href: asset!("/assets/main.css") }
+  
+  // Avoid unless used multiple times
+  const MAIN_CSS: Asset = asset!("/assets/main.css");
+  ```
+
+* Avoid implementing `Default` trait when it just calls `new()` - it adds no value
 ### Testing
 
 You can test that the code builds with `dx build --package desktop`.  Because we have no conditional compilation there's no need to build other targets to check for compile errors.
