@@ -1,25 +1,15 @@
-use crate::shapes::{Color, Geometry, Shape, Style};
+use crate::shapes::{Color, Geometry, Shape, Style, XYPoint};
 use crate::shapes_doc::{Document, ShapeId};
 use dioxus::prelude::*;
 use std::rc::Rc;
 
-const USE_MESSAGE_BOX: bool = false;
-
 const SHAPES_UI_CSS: Asset = asset!("/assets/styling/shapes_ui.css");
 
-enum TrackerNext {
-    Continue,
-    Done,
-}
+// APP_STATE contains properties that are global across the document display.
 
-trait Tracker {
-    fn track_mouse_move(&self, evt: &MouseEvent) -> TrackerNext;
-    fn track_mouse_up(&self, evt: &MouseEvent);
-}
+static APP_STATE: GlobalSignal<AppState> = Global::new(|| AppState::default());
 
-static CANVAS_TRACKER: GlobalSignal<Option<Rc<dyn Tracker>>> = Global::new(|| None);
-
-static MESSAGE_BOX: GlobalSignal<String> = Global::new(|| "".to_string());
+// For drawing new shapes, our AppState contains the fill color to use.
 
 struct AppState {
     fill_color: Color,
@@ -36,14 +26,51 @@ impl AppState {
         self.fill_color.clone()
     }
 
+    // Because we have not yet bothered with UI for setting the fill
+    // color, we provide a way to get the current fill color and then
+    // advance it to the next color.
+
     fn get_fill_color_and_advance(&mut self) -> Color {
         let old_color = self.fill_color.clone();
         self.fill_color.advance();
         old_color
     }
+
+    // We can also get the next fill color and advance while also
+    // skipping white in case we don't want to draw white shapes.
+
+    fn get_fill_color_and_advance_skipping_white(&mut self) -> Color {
+        let result_color = self.get_fill_color_and_advance();
+        if result_color == Color::White {
+            self.get_fill_color_and_advance_skipping_white()
+        } else {
+            result_color
+        }
+    }
 }
 
-static APP_STATE: GlobalSignal<AppState> = Global::new(|| AppState::default());
+// Mouse move trackers can respond by asking to continue or to announcing
+// that they are done.
+
+enum TrackerNext {
+    Continue,
+    Done,
+}
+
+// A tracker handles the mouse events while tracker.
+
+trait Tracker {
+    fn track_mouse_move(&self, evt: &MouseEvent) -> TrackerNext;
+    fn track_mouse_up(&self, evt: &MouseEvent);
+}
+
+// CANVAS_TRACKER contains the current tracker if any. SvgCanvasDiv will route
+// mouse moved and mouse up messages to this tracker.
+
+static CANVAS_TRACKER: GlobalSignal<Option<Rc<dyn Tracker>>> = Global::new(|| None);
+
+// The primary job of the SvgCanvasDiv element is to handle mouse move
+// and mouse up phases of tracking based on the current values of CANVAS_TRACKER.
 
 #[component]
 pub fn SvgCanvasDiv() -> Element {
@@ -78,39 +105,11 @@ pub fn SvgCanvasDiv() -> Element {
             onmousemove: mouse_move_handler,
             onmouseup: mouse_up_handler,
             SvgCanvas{}
-            if USE_MESSAGE_BOX {
-                MessageBox{}
-            }
         }
     }
 }
 
-#[component]
-fn MessageBox() -> Element {
-    if USE_MESSAGE_BOX {
-        let text: String = MESSAGE_BOX.read().clone();
-        rsx! {
-        div {
-            position: "absolute",
-            top: "0px",
-            left: "0px",
-            height: "20px",
-            right: "0px",
-            background_color: "blue",
-            { text }
-        } }
-    } else {
-        rsx! {
-        div {
-            position: "absolute",
-            top: "0px",
-            left: "0px",
-            height: "20px",
-            right: "0px",
-            background_color: "blue"
-        } }
-    }
-}
+// The SvgCancas element actually displays the background and the shapes.
 
 #[component]
 fn SvgCanvas() -> Element {
@@ -126,7 +125,12 @@ fn SvgCanvas() -> Element {
     }
 }
 
-static DOC: GlobalSignal<Document> = Global::new(|| Document::default());
+// DOC provides the current state of the document
+
+static DOC: GlobalSignal<Document> = Global::new(|| Document::new_demo());
+
+// Given a pair of coordinates, find the mimimum coordinate and the non-negative span
+// to the other coordinate.
 
 fn to_min_span(x1: f64, x2: f64) -> (f64, f64) {
     if x1 < x2 {
@@ -136,39 +140,41 @@ fn to_min_span(x1: f64, x2: f64) -> (f64, f64) {
     }
 }
 
+// We will do our tacking in terms of page coordinates.
+
+fn xy_point_from_page_coordinates(mouse_event: &MouseEvent) -> XYPoint {
+    XYPoint::new(
+        mouse_event.data.page_coordinates().x,
+        mouse_event.data.page_coordinates().y,
+    )
+}
+
+// Track a new rectangle with a given shape id and style
+
 struct NewRectTracker {
-    mouse_down_x: f64,
-    mouse_down_y: f64,
+    mouse_down: XYPoint,
     shape_id: ShapeId,
     style: Style,
 }
 
 impl NewRectTracker {
-    fn new(mouse_down: MouseEvent, shape_id: ShapeId, style: Style) -> Self {
-        let mouse_down_x = mouse_down.data.page_coordinates().x;
-        let mouse_down_y = mouse_down.data.page_coordinates().y;
+    fn new(mouse_down: &MouseEvent, shape_id: ShapeId, style: Style) -> Self {
         Self {
-            mouse_down_x,
-            mouse_down_y,
+            mouse_down: xy_point_from_page_coordinates(mouse_down),
             shape_id,
             style,
         }
     }
 
     fn post_shape_for_event(&self, mouse: &MouseEvent) {
-        let event_x = mouse.data.page_coordinates().x;
-        let event_y = mouse.data.page_coordinates().y;
-        let (left, width) = to_min_span(self.mouse_down_x, event_x);
-        let (top, height) = to_min_span(self.mouse_down_y, event_y);
-        if USE_MESSAGE_BOX {
-            *MESSAGE_BOX.write() = format!("Rectangle: {}, {}, {}, {}", left, top, width, height);
-        }
-        if 0.0 < width && 0.0 < height {
+        let event_coords = xy_point_from_page_coordinates(mouse);
+        let (min_x, span_x) = to_min_span(self.mouse_down.x, event_coords.x);
+        let (min_y, span_y) = to_min_span(self.mouse_down.y, event_coords.y);
+        // If the result is non-empty, upsert the shape.
+        if 0.0 < span_x && 0.0 < span_y {
             let geometry = Geometry::Rectangle {
-                top,
-                left,
-                height,
-                width,
+                top_left: XYPoint::new(min_x, min_y),
+                size: XYPoint::new(span_x, span_y),
             };
             DOC.write().upsert_shape_with_id(
                 self.shape_id,
@@ -177,6 +183,7 @@ impl NewRectTracker {
                     style: self.style.clone(),
                 },
             )
+        // If empty, delete the shape.
         } else {
             DOC.write().delete_shape_with_id(self.shape_id)
         }
@@ -193,16 +200,22 @@ impl Tracker for NewRectTracker {
     }
 }
 
+// We have a component to draw the background for the shapes. It's
+// most important job is handling clicks in the backgrouns.
+
 #[component]
 fn Background() -> Element {
+    // Mouse down on the canvas tracks out a rectangle. We use the
+    // next color in sequence, skipping white. (See Color::advance.)
+    // FIXME: Obviously, it would be better to have a color picker in
+    // the App UI but that would be more UI than we need for testing.
     let canvas_mouse_down = move |evt| {
         let shape_id = DOC.write().generate_shape_id();
-        let mut fill_color = APP_STATE.write().get_fill_color_and_advance();
-        if fill_color == Color::White {
-            fill_color = APP_STATE.write().get_fill_color_and_advance();
-        }
+        let mut fill_color = APP_STATE
+            .write()
+            .get_fill_color_and_advance_skipping_white();
         let style = Style::new(fill_color);
-        *CANVAS_TRACKER.write() = Some(Rc::new(NewRectTracker::new(evt, shape_id, style)))
+        *CANVAS_TRACKER.write() = Some(Rc::new(NewRectTracker::new(&evt, shape_id, style)))
     };
 
     rsx! {
@@ -217,6 +230,8 @@ fn Background() -> Element {
         }
     }
 }
+
+// We have a component to render the shapes from bottom to top.
 
 #[component]
 fn RenderedShapes() -> Element {
@@ -239,30 +254,24 @@ fn RenderedShapes() -> Element {
 /* Shape dragging */
 
 struct ShapeDragTracker {
-    mouse_down_x: f64,
-    mouse_down_y: f64,
+    mouse_down: XYPoint,
     shape_id: ShapeId,
     initial_geometry: Geometry,
 }
 
 impl ShapeDragTracker {
-    fn new(mouse_down: MouseEvent, shape_id: ShapeId, initial_geometry: &Geometry) -> Self {
-        let mouse_down_x = mouse_down.data.page_coordinates().x;
-        let mouse_down_y = mouse_down.data.page_coordinates().y;
+    fn new(mouse_down: &MouseEvent, shape_id: ShapeId, initial_geometry: &Geometry) -> Self {
         Self {
-            mouse_down_x,
-            mouse_down_y,
+            mouse_down: xy_point_from_page_coordinates(mouse_down),
             shape_id,
             initial_geometry: initial_geometry.clone(),
         }
     }
 
     fn update_shape_for_drag(&self, mouse: &MouseEvent) {
-        let event_x = mouse.data.page_coordinates().x;
-        let event_y = mouse.data.page_coordinates().y;
-        let new_geometry = self
-            .initial_geometry
-            .offset_by(event_x - self.mouse_down_x, event_y - self.mouse_down_y);
+        let event_coords = xy_point_from_page_coordinates(mouse);
+        let delta = event_coords.subtract(&self.mouse_down);
+        let new_geometry = self.initial_geometry.offset_by(&delta);
         DOC.write()
             .update_geometry_for_shape_id(&self.shape_id, new_geometry)
     }
@@ -294,43 +303,41 @@ fn svg_color(color: &Color) -> String {
     }
 }
 
+// Render a shape to SVG and attach a mouse down handler that
+// initiates dragging.
+
 fn render_shape(shape_id: ShapeId, shape: &Shape) -> Element {
     let id_string = format!("shape_{}", shape_id);
     let fill_color = svg_color(&shape.style.fill);
     let initial_geometry = shape.geometry.clone();
     let shape_mouse_down = move |evt| {
         *CANVAS_TRACKER.write() = Some(Rc::new(ShapeDragTracker::new(
-            evt,
+            &evt,
             shape_id,
             &initial_geometry,
         )))
     };
     /*
-    let move_shape_to_front = move |evt| DOC.write().move_shape_with_id_to_front(shape_id);
+    let move_shape_to_top = move |evt| DOC.write().move_shape_with_id_to_top(shape_id);
     */
     match &shape.geometry {
-        Geometry::Circle { cx, cy, radius } => rsx! {
+        Geometry::Circle { center, radius } => rsx! {
             circle {
                 id: id_string,
-                cx: *cx,
-                cy: *cy,
+                cx: center.x,
+                cy: center.y,
                 r: *radius,
                 fill: fill_color,
                 onmousedown: shape_mouse_down,
             }
         },
-        Geometry::Rectangle {
-            left,
-            top,
-            width,
-            height,
-        } => rsx! {
+        Geometry::Rectangle { top_left, size } => rsx! {
             rect {
                 id: id_string,
-                x: *left,
-                y: *top,
-                width: *width,
-                height: *height,
+                x: top_left.x,
+                y: top_left.y,
+                width: size.x,
+                height: size.y,
                 fill: fill_color,
                 onmousedown: shape_mouse_down,
             }
