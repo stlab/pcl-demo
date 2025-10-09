@@ -117,6 +117,10 @@ pub fn SvgCanvasDiv() -> Element {
     }
 }
 
+// DOC provides the current state of the document
+
+static DOC: GlobalSignal<Document> = Global::new(Document::new_demo);
+
 // The SvgCancas element actually displays the background and the shapes.
 
 #[component]
@@ -132,10 +136,6 @@ fn SvgCanvas() -> Element {
         }
     }
 }
-
-// DOC provides the current state of the document
-
-static DOC: GlobalSignal<Document> = Global::new(Document::new_demo);
 
 // Given a pair of coordinates, find the mimimum coordinate and the non-negative span
 // to the other coordinate.
