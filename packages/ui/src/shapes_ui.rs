@@ -64,17 +64,24 @@ trait Tracker {
     fn track_mouse_up(&self, evt: &MouseEvent);
 }
 
-// CANVAS_TRACKER contains the current tracker if any. SvgCanvasDiv will route
-// mouse moved and mouse up messages to this tracker.
-
-static CANVAS_TRACKER: GlobalSignal<Option<Rc<dyn Tracker>>> = Global::new(|| None);
-
 // The primary job of the SvgCanvasDiv element is to handle mouse move
-// and mouse up phases of tracking based on the current values of CANVAS_TRACKER.
+// and mouse up phases of tracking based on the current values of the tracker
+// supplied contextually as CanvasTracker.
+
+#[derive(Clone, Copy)]
+struct CanvasTracker {
+    signal: Signal<Option<Rc<dyn Tracker>>>,
+}
 
 #[component]
 pub fn SvgCanvasDiv() -> Element {
-    let opt_mouse_move_tracker = CANVAS_TRACKER();
+    let mut opt_tracker_signal: Signal<Option<Rc<dyn Tracker>>> = use_signal(|| None);
+
+    use_context_provider(|| CanvasTracker {
+        signal: opt_tracker_signal,
+    });
+
+    let opt_mouse_move_tracker = opt_tracker_signal();
     let opt_mouse_up_tracker = opt_mouse_move_tracker.clone();
 
     let mouse_move_handler = move |evt: MouseEvent| {
@@ -84,7 +91,7 @@ pub fn SvgCanvasDiv() -> Element {
             match tracker.track_mouse_move(&evt) {
                 TrackerNext::Continue => {}
                 TrackerNext::Done => {
-                    *CANVAS_TRACKER.write() = None;
+                    *opt_tracker_signal.write() = None;
                 }
             };
         }
@@ -95,7 +102,7 @@ pub fn SvgCanvasDiv() -> Element {
             evt.stop_propagation();
             evt.prevent_default();
             tracker.track_mouse_up(&evt);
-            *CANVAS_TRACKER.write() = None;
+            *opt_tracker_signal.write() = None;
         }
     };
 
@@ -216,7 +223,8 @@ fn Background() -> Element {
             .write()
             .get_fill_color_and_advance_skipping_white();
         let style = Style::new(fill_color);
-        *CANVAS_TRACKER.write() = Some(Rc::new(NewRectTracker::new(&evt, shape_id, style)))
+        *consume_context::<CanvasTracker>().signal.write() =
+            Some(Rc::new(NewRectTracker::new(&evt, shape_id, style)))
     };
 
     rsx! {
@@ -306,13 +314,12 @@ fn render_shape(shape_id: ShapeId, shape: &Shape) -> Element {
     let id_string = format!("shape_{shape_id}");
     let fill_color = svg_color(&shape.style.fill);
     let initial_geometry = shape.geometry.clone();
-    let shape_mouse_down = move |evt| {
-        *CANVAS_TRACKER.write() = Some(Rc::new(ShapeDragTracker::new(
-            &evt,
-            shape_id,
-            &initial_geometry,
-        )))
-    };
+    let shape_mouse_down =
+        move |evt| {
+            *consume_context::<CanvasTracker>().signal.write() = Some(Rc::new(
+                ShapeDragTracker::new(&evt, shape_id, &initial_geometry),
+            ))
+        };
     /*
     let move_shape_to_top = move |evt| DOC.write().move_shape_with_id_to_top(shape_id);
     */
