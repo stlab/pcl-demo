@@ -10,18 +10,56 @@ use std::vec::Vec;
 // but more difficult to generate (and, if one is squeamish about
 // randomization, more difficult to guarantee unique).
 
-pub type ShapeId = usize;
+#[derive(Eq, PartialEq, Clone, Copy, Hash)]
+pub struct ShapeId {
+    id: usize,
+}
+
+impl std::fmt::Display for ShapeId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "{}", self.id)
+    }
+}
+
+// We generate shape id's from a ShapeIdGenerator. We can also push
+// the generator past any particular shape id.
+
+#[derive(Clone)]
+struct ShapeIdGenerator {
+    next_id: usize,
+}
+
+impl ShapeIdGenerator {
+    // Initial state
+    fn default() -> Self {
+        Self { next_id: 1 }
+    }
+
+    // Generate a new id and advance past this id
+    fn generate_and_advance(&mut self) -> ShapeId {
+        let id = self.next_id;
+        self.next_id = id + 1;
+        ShapeId { id }
+    }
+
+    // Advance past some other shape id
+    fn advance_past(&mut self, other: ShapeId) {
+        if self.next_id <= other.id {
+            self.next_id = other.id + 1;
+        }
+    }
+}
 
 // Our document consists of a sequence of shape ids listing the shapes
 // to render from bottom to top, a hash map of shapes keyed by shape ids,
 // and the next shape id to generate which should be greater than all
 // of the shape ids ever used or generated for this document.
 
-#[derive(PartialEq, Clone)]
+#[derive(Clone)]
 pub struct Document {
     shapes: HashMap<ShapeId, Shape>,
     sequence: Vec<ShapeId>,
-    next_shape_id: usize,
+    shape_id_generator: ShapeIdGenerator,
 }
 
 pub enum DocError {
@@ -37,7 +75,7 @@ impl<'a> Document {
         Self {
             sequence: Vec::new(),
             shapes: HashMap::new(),
-            next_shape_id: 1,
+            shape_id_generator: ShapeIdGenerator::default(),
         }
     }
 
@@ -57,9 +95,7 @@ impl<'a> Document {
             // Add the shape to the dictionary
             doc.shapes.insert(shape_id, shape);
             // Make sure that next_shape_id is larger than any of these shapes
-            if doc.next_shape_id <= shape_id {
-                doc.next_shape_id = shape_id + 1;
-            }
+            doc.shape_id_generator.advance_past(shape_id);
         }
         Ok(doc)
     }
@@ -138,9 +174,7 @@ impl<'a> Document {
     // Generate the next unused (for this document) shape id
 
     pub fn generate_shape_id(&mut self) -> ShapeId {
-        let id = self.next_shape_id;
-        self.next_shape_id = id + 1;
-        id
+        self.shape_id_generator.generate_and_advance()
     }
 
     // Upsert a shape with an id into the document.
@@ -155,9 +189,7 @@ impl<'a> Document {
         self.shapes.insert(shape_id, shape);
         // Make sure that next_shape_id is greater than all other
         // shape id's seen within the document.
-        if self.next_shape_id <= shape_id {
-            self.next_shape_id = shape_id + 1
-        }
+        self.shape_id_generator.advance_past(shape_id);
     }
 
     // Remove the shape with the given id from both the shapes sequence
