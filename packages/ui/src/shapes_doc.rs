@@ -40,9 +40,10 @@ impl<'a> Document {
         }
     }
 
-    // The standard way to create a new document is to take a vector
-    // of ShapeId/Shape pairs containing the shapes to display from
-    // bottom to top. Duplicate shape id's will result in an error.
+    // The standard way to create a new document (if the empty document
+    // is insufficient) is to take a vector of ShapeId/Shape pairs containing
+    // the shapes to display from bottom to top. Duplicate shape id's will result
+    // in an error.
     pub fn new_from_pairs(pairs: Vec<(ShapeId, Shape)>) -> Result<Self, DocError> {
         let mut doc = Self::new_empty();
         for (shape_id, shape) in pairs {
