@@ -120,9 +120,9 @@ impl<'a> Document {
         std::slice::Iter<'a, ShapeId>,
         impl Fn(&'a ShapeId) -> Option<(ShapeId, &'a Shape)>,
     > {
-        let to_opt_shape_id_shape = |shape_id: &ShapeId| match self.get_shape_by_id(*shape_id) {
-            Some(shape) => Some((*shape_id, shape)),
-            None => None,
+        let to_opt_shape_id_shape = |shape_id: &ShapeId| {
+            self.get_shape_by_id(*shape_id)
+                .map(|shape| (*shape_id, shape))
         };
         self.shape_ids_iter().filter_map(to_opt_shape_id_shape)
     }
