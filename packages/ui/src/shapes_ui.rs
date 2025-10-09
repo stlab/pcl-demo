@@ -7,7 +7,7 @@ const SHAPES_UI_CSS: Asset = asset!("/assets/styling/shapes_ui.css");
 
 // APP_STATE contains properties that are global across the document display.
 
-static APP_STATE: GlobalSignal<AppState> = Global::new(|| AppState::default());
+static APP_STATE: GlobalSignal<AppState> = Global::new(AppState::default);
 
 // For drawing new shapes, our AppState contains the fill color to use.
 
@@ -128,7 +128,7 @@ fn SvgCanvas() -> Element {
 
 // DOC provides the current state of the document
 
-static DOC: GlobalSignal<Document> = Global::new(|| Document::new_demo());
+static DOC: GlobalSignal<Document> = Global::new(Document::new_demo);
 
 // Given a pair of coordinates, find the mimimum coordinate and the non-negative span
 // to the other coordinate.
