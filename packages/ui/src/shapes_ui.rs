@@ -236,14 +236,9 @@ fn Background() -> Element {
 #[component]
 fn RenderedShapes() -> Element {
     let doc: &Document = &*DOC.read();
-    // FIXME: It would be better if this iterator lived in the document
+    let shape_id_shapes_iter = doc.shape_id_shapes_iter();
     let rendered_shapes_iter =
-        doc.get_sequence()
-            .iter()
-            .filter_map(|shape_id| match doc.get_shape_by_id(*shape_id) {
-                Some(shape) => Some(render_shape(*shape_id, shape)),
-                None => None,
-            });
+        shape_id_shapes_iter.map(|(shape_id, shape)| render_shape(shape_id, shape));
     rsx! {
         for rendered_shape in rendered_shapes_iter {
             { rendered_shape }

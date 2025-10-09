@@ -27,7 +27,9 @@ pub enum DocError {
     DuplicateShapeId(ShapeId),
 }
 
-impl Document {
+// Note: We need the lifetime for the shapes iterator
+
+impl<'a> Document {
     // Create a new empty document is easy (and unlike other functions that
     // perform validation, does not fail).
     pub fn new_empty() -> Self {
@@ -103,13 +105,26 @@ impl Document {
         ])
     }
 
-    // Get the sequence of shapes from bottom to top
+    // Get an iterator for the sequence of shape ids from bottom to top.
 
-    /* FIXME: It would be better to access this through an iterator on the shapes but
-    the type system is fighting me on that. */
+    pub fn shape_ids_iter(&self) -> std::slice::Iter<'_, ShapeId> {
+        self.sequence.iter()
+    }
 
-    pub fn get_sequence(&self) -> &Vec<ShapeId> {
-        &self.sequence
+    // Get an iterator for the sequence of ShapeId, Shape pairs from
+    // bottom to top.
+
+    pub fn shape_id_shapes_iter(
+        &'a self,
+    ) -> std::iter::FilterMap<
+        std::slice::Iter<'_, ShapeId>,
+        impl Fn(&'a ShapeId) -> Option<(ShapeId, &Shape)>,
+    > {
+        let to_opt_shape_id_shape = |shape_id: &ShapeId| match self.get_shape_by_id(*shape_id) {
+            Some(shape) => Some((*shape_id, shape)),
+            None => None,
+        };
+        self.shape_ids_iter().filter_map(to_opt_shape_id_shape)
     }
 
     // Get a shape if any with a particular id
