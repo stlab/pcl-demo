@@ -211,7 +211,7 @@ fn Background() -> Element {
     // the App UI but that would be more UI than we need for testing.
     let canvas_mouse_down = move |evt| {
         let shape_id = DOC.write().generate_shape_id();
-        let mut fill_color = APP_STATE
+        let fill_color = APP_STATE
             .write()
             .get_fill_color_and_advance_skipping_white();
         let style = Style::new(fill_color);
