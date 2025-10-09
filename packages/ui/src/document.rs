@@ -39,9 +39,4 @@ impl Document {
 
         serde_json::to_writer_pretty(f, self).context(format!("Failed to write: {p:?}"))
     }
-
-    /// Returns the HTML to render `self`.
-    pub fn to_html(&self) -> String {
-        self.html.clone()
-    }
 }
