@@ -5,17 +5,17 @@ use std::rc::Rc;
 
 const SHAPES_UI_CSS: Asset = asset!("/assets/styling/shapes_ui.css");
 
-// APP_STATE contains properties that are global across the document display.
+// EDITOR_STATE contains properties that are global across the document display.
 
-static APP_STATE: GlobalSignal<AppState> = Global::new(AppState::default);
+static EDITOR_STATE: GlobalSignal<EditorState> = Global::new(EditorState::default);
 
 // For drawing new shapes, our AppState contains the fill color to use.
 
-struct AppState {
+struct EditorState {
     fill_color: Color,
 }
 
-impl AppState {
+impl EditorState {
     fn default() -> Self {
         Self {
             fill_color: Color::Red,
@@ -212,7 +212,7 @@ fn Background() -> Element {
     // the App UI but that would be more UI than we need for testing.
     let canvas_mouse_down = move |evt| {
         let shape_id = DOC.write().generate_shape_id();
-        let fill_color = APP_STATE
+        let fill_color = EDITOR_STATE
             .write()
             .get_fill_color_and_advance_skipping_white();
         let style = Style::new(fill_color);
