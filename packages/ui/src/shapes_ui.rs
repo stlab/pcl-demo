@@ -303,7 +303,7 @@ fn svg_color(color: &Color) -> String {
 // initiates dragging.
 
 fn render_shape(shape_id: ShapeId, shape: &Shape) -> Element {
-    let id_string = format!("shape_{}", shape_id);
+    let id_string = format!("shape_{shape_id}");
     let fill_color = svg_color(&shape.style.fill);
     let initial_geometry = shape.geometry.clone();
     let shape_mouse_down = move |evt| {
