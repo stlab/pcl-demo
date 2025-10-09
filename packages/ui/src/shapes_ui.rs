@@ -100,11 +100,11 @@ pub fn SvgCanvasDiv() -> Element {
     };
 
     rsx! {
+        document::Link { rel: "stylesheet", href: SHAPES_UI_CSS }
         div {
             id: "svg_canvas_div",
             onmousemove: mouse_move_handler,
             onmouseup: mouse_up_handler,
-            document::Link { rel: "stylesheet", href: SHAPES_UI_CSS },
             SvgCanvas{}
         }
     }
