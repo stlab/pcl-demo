@@ -115,7 +115,7 @@ impl Geometry {
             },
             Geometry::Circle { center, radius } => Geometry::Circle {
                 center: center.add(offset),
-                radius: radius.clone(),
+                radius: *radius,
             },
         }
     }
