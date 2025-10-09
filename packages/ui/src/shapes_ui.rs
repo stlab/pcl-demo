@@ -240,7 +240,7 @@ fn RenderedShapes() -> Element {
     let rendered_shapes_iter =
         doc.get_sequence()
             .iter()
-            .filter_map(|shape_id| match &doc.get_shape_by_id(*shape_id) {
+            .filter_map(|shape_id| match doc.get_shape_by_id(*shape_id) {
                 Some(shape) => Some(render_shape(*shape_id, shape)),
                 None => None,
             });
