@@ -12,9 +12,10 @@ use std::vec::Vec;
 
 pub type ShapeId = usize;
 
-// Our document consists of a hash map of shapes keyed by shape ids.
-// We also track the next shape id to generate which should be greater
-// than all of the shape ids ever used or generated for this document.
+// Our document consists of a sequence of shape ids listing the shapes
+// to render from bottom to top, a hash map of shapes keyed by shape ids,
+// and the next shape id to generate which should be greater than all
+// of the shape ids ever used or generated for this document.
 
 #[derive(PartialEq, Clone)]
 pub struct Document {
