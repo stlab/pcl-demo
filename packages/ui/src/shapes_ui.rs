@@ -236,7 +236,7 @@ fn Background() -> Element {
 
 #[component]
 fn RenderedShapes() -> Element {
-    let doc: &Document = &*DOC.read();
+    let doc: &Document = &DOC.read();
     let shape_id_shapes_iter = doc.shape_id_shapes_iter();
     let rendered_shapes_iter =
         shape_id_shapes_iter.map(|(shape_id, shape)| render_shape(shape_id, shape));
