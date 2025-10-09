@@ -117,8 +117,8 @@ impl<'a> Document {
     pub fn shape_id_shapes_iter(
         &'a self,
     ) -> std::iter::FilterMap<
-        std::slice::Iter<'_, ShapeId>,
-        impl Fn(&'a ShapeId) -> Option<(ShapeId, &Shape)>,
+        std::slice::Iter<'a, ShapeId>,
+        impl Fn(&'a ShapeId) -> Option<(ShapeId, &'a Shape)>,
     > {
         let to_opt_shape_id_shape = |shape_id: &ShapeId| match self.get_shape_by_id(*shape_id) {
             Some(shape) => Some((*shape_id, shape)),
