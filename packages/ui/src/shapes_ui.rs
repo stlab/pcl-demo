@@ -245,8 +245,8 @@ fn RenderedShapes() -> Element {
                 None => None,
             });
     rsx! {
-        for shape in rendered_shapes_iter {
-            { shape }
+        for rendered_shape in rendered_shapes_iter {
+            { rendered_shape }
         }
     }
 }
