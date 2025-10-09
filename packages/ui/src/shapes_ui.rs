@@ -57,7 +57,7 @@ enum TrackerNext {
     Done,
 }
 
-// A tracker handles the mouse events while tracker.
+// A tracker handles the mouse events while tracking.
 
 trait Tracker {
     fn track_mouse_move(&self, evt: &MouseEvent) -> TrackerNext;
