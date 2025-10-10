@@ -52,8 +52,6 @@ fn OpenMenuItem(
     mut saved_files_list: Signal<Vec<String>>,
     mut error_message: Signal<Option<String>>,
 ) -> Element {
-    let file_count = saved_files_list.read().len();
-    
     let handle_click = move |_| {
         match saved_files() {
             Ok(files) => {
@@ -75,7 +73,7 @@ fn OpenMenuItem(
         MenuItem {
             icon: "📂",
             title: "Open",
-            subtitle: "Browse saved documents ({file_count} files)",
+            subtitle: "Browse saved documents ({saved_files_list.read().len()} files)",
             onclick: handle_click,
         }
     }
@@ -138,7 +136,7 @@ fn SaveAsMenuItem(
     mut filename_input: Signal<String>,
 ) -> Element {
     let handle_click = move |_| {
-        let current_name = {
+        filename_input.set({
             let current_state = state.read();
             current_state
                 .current_file_path
@@ -147,9 +145,7 @@ fn SaveAsMenuItem(
                 .and_then(|n| n.to_str())
                 .unwrap_or("document")
                 .replace(".json", "")
-        };
-
-        filename_input.set(current_name);
+        });
         filename_prompt_open.set(true);
         menu_open.set(false);
     };
@@ -235,26 +231,25 @@ fn MenuBottomSheet(
 /// Individual file item in the file list.
 #[component]
 fn FileItem(filename: String, on_open: EventHandler<String>, on_delete: EventHandler<String>) -> Element {
-    let open_filename = filename.clone();
-    let delete_filename = filename.clone();
-    let size = file_size(&filename).unwrap_or(0);
-
+    let filename_for_open = filename.clone();
+    let filename_for_delete = filename.clone();
+    
     rsx! {
         div {
             class: "file-item",
             button {
                 class: "file-item-button",
-                onclick: move |_| on_open.call(open_filename.clone()),
+                onclick: move |_| on_open.call(filename_for_open.clone()),
                 div { class: "file-item-icon", "📄" }
                 div {
                     class: "file-item-info",
                     div { class: "file-item-name", "{filename}" }
-                    div { class: "file-item-size", "{size} bytes" }
+                    div { class: "file-item-size", "{file_size(&filename).unwrap_or(0)} bytes" }
                 }
             }
             button {
                 class: "file-delete-button",
-                onclick: move |_| on_delete.call(delete_filename.clone()),
+                onclick: move |_| on_delete.call(filename_for_delete.clone()),
                 title: "Delete file",
                 "🗑️"
             }

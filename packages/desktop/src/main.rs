@@ -20,15 +20,13 @@ fn handle_file_result<T, E: Display>(result: Result<T, E>, operation: &str) {
 
 /// Runs the application.
 fn main() {
-    let menu_bar = create_menu_bar();
-
     // Nonstandard startup so the application window doesn't float on
     // top of those of other applications.
     LaunchBuilder::desktop()
         .with_cfg(
             Config::default()
                 .with_window(WindowBuilder::new().with_always_on_top(false))
-                .with_menu(menu_bar),
+                .with_menu(create_menu_bar()),
         )
         .launch(AppUI);
 }

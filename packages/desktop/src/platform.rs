@@ -84,9 +84,8 @@ pub fn create_menu_bar() -> Menu {
 /// Adds application menu on macOS to ensure File menu shows correctly.
 fn add_app_menu_if_needed(menu_bar: &Menu) {
     if cfg!(target_os = "macos") {
-        let app_menu = Submenu::new("CodeLess", true);
         menu_bar
-            .append(&app_menu)
+            .append(&Submenu::new("CodeLess", true))
             .expect("Failed to append app menu on macOS");
     }
     // No app menu needed on other platforms

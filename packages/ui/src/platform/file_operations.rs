@@ -51,8 +51,7 @@ pub fn delete_document(filename: &str) -> Result<()> {
 
 /// Returns the full path for `filename` in the storage directory.
 fn file_path(filename: &str) -> PathBuf {
-    let storage_dir = storage_directory();
-    storage_dir.join(filename)
+    storage_directory().join(filename)
 }
 
 /// Returns the JSON files in `storage_dir`.
@@ -78,11 +77,11 @@ fn collect_json_files_from_dir(storage_dir: &Path) -> Result<Vec<String>> {
 
 /// Downloads `content` as `filename`.
 fn download_file(content: &str, filename: &str) -> Result<()> {
-    let window = window()
-        .ok_or_else(|| anyhow!("Failed to get window object - browser API unavailable"))?;
-    let document = window.document().ok_or_else(|| {
-        anyhow!("Failed to get document object - browser API unavailable")
-    })?;
+    let window =
+        window().ok_or_else(|| anyhow!("Failed to get window object - browser API unavailable"))?;
+    let document = window
+        .document()
+        .ok_or_else(|| anyhow!("Failed to get document object - browser API unavailable"))?;
 
     let array = Array::new();
     array.push(&JsValue::from_str(content));
@@ -122,24 +121,20 @@ fn download_file(content: &str, filename: &str) -> Result<()> {
 
 /// Saves `content` as `filename` to storage.
 pub fn save_document_to_storage(content: &str, filename: &str) -> Result<()> {
-    let path = file_path(filename);
-
-    fs::write(&path, content)
-        .with_context(|| format!("Failed to save '{filename}' to {path:?}"))?;
+    fs::write(file_path(filename), content)
+        .with_context(|| format!("Failed to save '{filename}' to {:?}", file_path(filename)))?;
 
     Ok(())
 }
 
 /// Returns the content of the file named `filename`.
 pub fn load_document_from_storage(filename: &str) -> Result<String> {
-    let path = file_path(filename);
-    fs::read_to_string(&path).with_context(|| format!("Failed to read file '{filename}'"))
+    fs::read_to_string(&file_path(filename)).with_context(|| format!("Failed to read file '{filename}'"))
 }
 
 /// Deletes the file named `filename`.
 pub fn delete_document_from_storage(filename: &str) -> Result<()> {
-    let path = file_path(filename);
-    fs::remove_file(&path).with_context(|| format!("Failed to delete file '{filename}'"))
+    fs::remove_file(&file_path(filename)).with_context(|| format!("Failed to delete file '{filename}'"))
 }
 
 /// Returns the names of all saved files.
@@ -158,8 +153,7 @@ pub fn saved_files() -> Result<Vec<String>> {
 
 /// Returns the size of the file named `filename`.
 pub fn file_size(filename: &str) -> Result<usize> {
-    let path = file_path(filename);
-    fs::metadata(&path)
+    fs::metadata(&file_path(filename))
         .map(|metadata| metadata.len() as usize)
         .with_context(|| format!("Failed to get file size for '{filename}'"))
 }

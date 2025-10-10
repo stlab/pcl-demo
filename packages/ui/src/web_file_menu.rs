@@ -68,10 +68,10 @@ fn OpenButton(mut state: Signal<ApplicationState>) -> Element {
                 }
             };
             let mut state_clone = state;
-            let file_reader_ptr = file_reader.clone();
+            let file_reader_clone = file_reader.clone();
 
             let onload = Closure::<dyn FnMut(web_sys::Event)>::new(move |_| {
-                if let Ok(result) = file_reader_ptr.result() {
+                if let Ok(result) = file_reader_clone.result() {
                     if let Some(text) = result.as_string() {
                         log_1(&format!("File content read: {} chars", text.len()).into());
 
@@ -154,17 +154,14 @@ fn SaveButton(state: Signal<ApplicationState>) -> Element {
 /// Menu button for saving the document with a new name.
 #[component]
 fn SaveAsButton(state: Signal<ApplicationState>) -> Element {
-    let handle_click = move |_| {
-        let current_state = state.read();
-        match to_string_pretty(&current_state.the_only_document) {
-            Ok(json_content) => {
-                if let Err(e) = download_file(&json_content, "document.json") {
-                    eprintln!("Failed to download file for save as: {e}");
-                }
+    let handle_click = move |_| match to_string_pretty(&state.read().the_only_document) {
+        Ok(json_content) => {
+            if let Err(e) = download_file(&json_content, "document.json") {
+                eprintln!("Failed to download file for save as: {e}");
             }
-            Err(e) => {
-                eprintln!("Failed to serialize document for save as: {e}");
-            }
+        }
+        Err(e) => {
+            eprintln!("Failed to serialize document for save as: {e}");
         }
     };
 
@@ -181,8 +178,6 @@ fn SaveAsButton(state: Signal<ApplicationState>) -> Element {
 /// The web app's file menu.
 #[component]
 pub fn WebFileMenu(application_state: Signal<ApplicationState>) -> Element {
-    let state = application_state;
-
     rsx! {
         document::Link { rel: "stylesheet", href: asset!("/assets/styling/file_menu.css") }
         div {
@@ -192,10 +187,10 @@ pub fn WebFileMenu(application_state: Signal<ApplicationState>) -> Element {
                 span { class: "menu-title", "File" }
                 div {
                     class: "menu-buttons",
-                    NewButton { state }
-                    OpenButton { state }
-                    SaveButton { state }
-                    SaveAsButton { state }
+                    NewButton { state: application_state }
+                    OpenButton { state: application_state }
+                    SaveButton { state: application_state }
+                    SaveAsButton { state: application_state }
                 }
             }
         }
@@ -206,20 +201,19 @@ pub fn WebFileMenu(application_state: Signal<ApplicationState>) -> Element {
 
 /// Saves a file called `filename` containing `content`.
 fn download_file(content: &str, filename: &str) -> Result<(), String> {
-    let window = window()
-        .ok_or_else(|| "Failed to get window object - browser API unavailable".to_string())?;
-    let document = window
+    let document = window()
+        .ok_or_else(|| "Failed to get window object - browser API unavailable".to_string())?
         .document()
         .ok_or_else(|| "Failed to get document object - browser API unavailable".to_string())?;
 
     let array = Array::new();
     array.push(&JsValue::from_str(content));
 
-    let blob = Blob::new_with_str_sequence(&array)
-        .map_err(|_| "Failed to create Blob from content".to_string())?;
-
-    let url = Url::create_object_url_with_blob(&blob)
-        .map_err(|_| "Failed to create object URL for blob".to_string())?;
+    let url = Url::create_object_url_with_blob(
+        &Blob::new_with_str_sequence(&array)
+            .map_err(|_| "Failed to create Blob from content".to_string())?,
+    )
+    .map_err(|_| "Failed to create object URL for blob".to_string())?;
     let anchor: HtmlAnchorElement = document
         .create_element("a")
         .map_err(|_| "Failed to create anchor element".to_string())?
