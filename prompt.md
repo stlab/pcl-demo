@@ -266,7 +266,18 @@ The initial UI rendered by the component on the client must be identical to the 
 
 ## Methodology
 
+Follow the guidance of the Better Code book, currently under development at https://github.com/stlab/better-code/tree/main/better-code/src.
+
+### Naming
+
+Avoid embedding type information (or anything else visible in the declaration) in names of non-types.  Never call an array `array`; find a name that describes a role.  If you can't find a descriptive name that is more than its type, a single-character name might be the best choice.
+
+Adapt the naming philosphy outlined in the Swift API guidelines (https://www.swift.org/documentation/api-design-guidelines/) as necessary for Rust. Keep in mind that when Rust programmers read code, the names of function parameters are very often displayed at call sites as though they were swift argument labels.
+
+
 ### Documentation
+
+Use the contract documentation methodology described in https://github.com/stlab/better-code/blob/main/better-code/src/chapter-2-contracts.md
 
 Document each function or method using the style outlined in the Swift API guidelines (https://www.swift.org/documentation/api-design-guidelines/), preferring to capture everything in the summary if reasonable.  Describe results at the level of human semantics, without replicating the logic of the function, including any regular expressions it may use. Be as concise as possible but include all information necessary to determine if the implementation is correct.
 
@@ -302,29 +313,24 @@ write:
   - `file_from_open_dialog()` - returns an existing file
   - `path_from_save_dialog()` - returns a path (may not exist yet)
 
-* Avoid unnecessary constants for single-use values; prefer inline `asset!()` calls:
-  ```rust
-  // Good
-  document::Link { rel: "stylesheet", href: asset!("/assets/main.css") }
-  
-  // Avoid unless used multiple times
-  const MAIN_CSS: Asset = asset!("/assets/main.css");
-  ```
-
-* Avoid implementing `Default` trait when it just calls `new()` - it adds no value
-
 * Don't use function names starting with `get_`. Functions that return values should have simple, direct names:
   ```rust
   // BAD: Unnecessary get_ prefix
   fn get_saved_files() -> Vec<String> { ... }
   fn get_file_size(filename: &str) -> usize { ... }
-  
+
   // GOOD: Direct, clear names
   fn saved_files() -> Vec<String> { ... }
   fn file_size(filename: &str) -> usize { ... }
   ```
 
+* Avoid repeating information (including type information) that's visible in the declaration of the thing being documented.  For example, Documentation beginning "Extension trait…", "Blanket implementation…", or "Method…" is right out.
+
 ### Code Organization
+
+* Avoid unnecessary constants for single-use values.
+
+* Avoid implementing `Default` trait when it just calls `new()` - it adds no value
 
 * Avoid creating "namespace structs" - empty structs that only serve as containers for static methods. Use standalone functions or proper abstractions instead:
   ```rust
@@ -333,7 +339,7 @@ write:
   impl PlatformDialogs {
       pub fn file_from_open_dialog() -> Option<PathBuf> { ... }
   }
-  
+
   // GOOD: Standalone function
   pub fn file_from_open_dialog() -> Option<PathBuf> { ... }
   ```
@@ -349,12 +355,12 @@ write:
   // BAD: Explicit qualification throughout code
   use std::path;
   fn open() -> Option<path::PathBuf> { ... }
-  
+
   // GOOD: Import specific types and use them directly
   use std::path::PathBuf;
   fn open() -> Option<PathBuf> { ... }
   ```
-  
+
   ```rust
   // BAD: Module qualification in calling code
   mod platform;
@@ -362,7 +368,7 @@ write:
       let menu = platform::create_menu_bar();
       let file = platform::file_from_open_dialog();
   }
-  
+
   // GOOD: Import specific functions
   mod platform;
   use platform::{create_menu_bar, file_from_open_dialog};
