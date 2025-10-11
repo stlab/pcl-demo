@@ -9,57 +9,32 @@ use wasm_bindgen::closure::Closure;
 use wasm_bindgen::{JsCast, JsValue};
 use web_sys::{console::log_1, window, Blob, FileReader, HtmlAnchorElement, HtmlInputElement, Url};
 
-const FILE_MENU_CSS: Asset = asset!("/assets/styling/file_menu.css");
-
-/// File menu component that provides file operations for web app
+/// Menu button for creating a new document.
 #[component]
-pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
-    let mut state = application_state;
-    let mut file_input_ref = use_signal(|| None::<HtmlInputElement>);
-    // Store the FileReader onload closure so it doesn't leak
-    let mut onload_closure = use_signal(|| None::<Closure<dyn FnMut(web_sys::Event)>>);
-
-    let handle_new = move |_| {
+fn NewButton(mut state: Signal<ApplicationState>) -> Element {
+    let handle_click = move |_| {
         state.write().new_document();
     };
+
+    rsx! {
+        button {
+            class: "menu-button",
+            title: "New document (Ctrl+N)",
+            onclick: handle_click,
+            "New"
+        }
+    }
+}
+
+/// Hidden file input and open button for loading documents.
+#[component]
+fn OpenButton(mut state: Signal<ApplicationState>) -> Element {
+    let mut file_input_ref = use_signal(|| None::<HtmlInputElement>);
+    let mut onload_closure = use_signal(|| None::<Closure<dyn FnMut(web_sys::Event)>>);
 
     let handle_open = move |_| {
         if let Some(input) = file_input_ref.read().as_ref() {
             input.click();
-        }
-    };
-
-    let handle_save = move |_| {
-        let current_state = state.read();
-        match to_string_pretty(&current_state.the_only_document) {
-            Ok(json_content) => {
-                let filename = current_state
-                    .current_file_path
-                    .as_ref()
-                    .and_then(|p| p.file_name())
-                    .and_then(|n| n.to_str())
-                    .unwrap_or("document.json");
-                if let Err(e) = download_file(&json_content, filename) {
-                    eprintln!("Failed to download file for save: {e}");
-                }
-            }
-            Err(e) => {
-                eprintln!("Failed to serialize document for save: {e}");
-            }
-        }
-    };
-
-    let handle_save_as = move |_| {
-        let current_state = state.read();
-        match to_string_pretty(&current_state.the_only_document) {
-            Ok(json_content) => {
-                if let Err(e) = download_file(&json_content, "document.json") {
-                    eprintln!("Failed to download file for save as: {e}");
-                }
-            }
-            Err(e) => {
-                eprintln!("Failed to serialize document for save as: {e}");
-            }
         }
     };
 
@@ -93,10 +68,10 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
                 }
             };
             let mut state_clone = state;
-            let file_reader_ptr = file_reader.clone();
+            let file_reader_clone = file_reader.clone();
 
             let onload = Closure::<dyn FnMut(web_sys::Event)>::new(move |_| {
-                if let Ok(result) = file_reader_ptr.result() {
+                if let Ok(result) = file_reader_clone.result() {
                     if let Some(text) = result.as_string() {
                         log_1(&format!("File content read: {} chars", text.len()).into());
 
@@ -125,7 +100,86 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
     };
 
     rsx! {
-        document::Link { rel: "stylesheet", href: FILE_MENU_CSS }
+        input {
+            r#type: "file",
+            accept: ".json",
+            style: "display: none",
+            id: "file-input-hidden",
+            onmounted: handle_file_input_mounted,
+            onchange: handle_file_change
+        }
+
+        button {
+            class: "menu-button",
+            title: "Open document (Ctrl+O)",
+            onclick: handle_open,
+            "Open"
+        }
+    }
+}
+
+/// Menu button for saving the current document.
+#[component]
+fn SaveButton(state: Signal<ApplicationState>) -> Element {
+    let handle_click = move |_| {
+        let current_state = state.read();
+        match to_string_pretty(&current_state.the_only_document) {
+            Ok(json_content) => {
+                let filename = current_state
+                    .current_file_path
+                    .as_ref()
+                    .and_then(|p| p.file_name())
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("document.json");
+                if let Err(e) = download_file(&json_content, filename) {
+                    eprintln!("Failed to download file for save: {e}");
+                }
+            }
+            Err(e) => {
+                eprintln!("Failed to serialize document for save: {e}");
+            }
+        }
+    };
+
+    rsx! {
+        button {
+            class: "menu-button",
+            title: "Save document (Ctrl+S)",
+            onclick: handle_click,
+            "Save"
+        }
+    }
+}
+
+/// Menu button for saving the document with a new name.
+#[component]
+fn SaveAsButton(state: Signal<ApplicationState>) -> Element {
+    let handle_click = move |_| match to_string_pretty(&state.read().the_only_document) {
+        Ok(json_content) => {
+            if let Err(e) = download_file(&json_content, "document.json") {
+                eprintln!("Failed to download file for save as: {e}");
+            }
+        }
+        Err(e) => {
+            eprintln!("Failed to serialize document for save as: {e}");
+        }
+    };
+
+    rsx! {
+        button {
+            class: "menu-button",
+            title: "Save document as... (Ctrl+Shift+S)",
+            onclick: handle_click,
+            "Save As"
+        }
+    }
+}
+
+/// The web app's file menu.
+#[component]
+pub fn WebFileMenu(application_state: Signal<ApplicationState>) -> Element {
+    rsx! {
+        document::Link { rel: "stylesheet", href: asset!("/assets/styling/file_menu.css") }
         div {
             class: "file-menu",
             div {
@@ -133,41 +187,10 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
                 span { class: "menu-title", "File" }
                 div {
                     class: "menu-buttons",
-                    button {
-                        class: "menu-button",
-                        title: "New document (Ctrl+N)",
-                        onclick: handle_new,
-                        "New"
-                    }
-
-                    input {
-                        r#type: "file",
-                        accept: ".json",
-                        style: "display: none",
-                        id: "file-input-hidden",
-                        onmounted: handle_file_input_mounted,
-                        onchange: handle_file_change
-                    }
-
-                    button {
-                        class: "menu-button",
-                        title: "Open document (Ctrl+O)",
-                        onclick: handle_open,
-                        "Open"
-                    }
-
-                    button {
-                        class: "menu-button",
-                        title: "Save document (Ctrl+S)",
-                        onclick: handle_save,
-                        "Save"
-                    }
-                    button {
-                        class: "menu-button",
-                        title: "Save document as... (Ctrl+Shift+S)",
-                        onclick: handle_save_as,
-                        "Save As"
-                    }
+                    NewButton { state: application_state }
+                    OpenButton { state: application_state }
+                    SaveButton { state: application_state }
+                    SaveAsButton { state: application_state }
                 }
             }
         }
@@ -176,22 +199,21 @@ pub fn FileMenu(application_state: Signal<ApplicationState>) -> Element {
 
 // Browser API functions for file operations
 
-/// Downloads a file with the given content and filename
+/// Saves a file called `filename` containing `content`.
 fn download_file(content: &str, filename: &str) -> Result<(), String> {
-    let window = window()
-        .ok_or_else(|| "Failed to get window object - browser API unavailable".to_string())?;
-    let document = window
+    let document = window()
+        .ok_or_else(|| "Failed to get window object - browser API unavailable".to_string())?
         .document()
         .ok_or_else(|| "Failed to get document object - browser API unavailable".to_string())?;
 
     let array = Array::new();
     array.push(&JsValue::from_str(content));
 
-    let blob = Blob::new_with_str_sequence(&array)
-        .map_err(|_| "Failed to create Blob from content".to_string())?;
-
-    let url = Url::create_object_url_with_blob(&blob)
-        .map_err(|_| "Failed to create object URL for blob".to_string())?;
+    let url = Url::create_object_url_with_blob(
+        &Blob::new_with_str_sequence(&array)
+            .map_err(|_| "Failed to create Blob from content".to_string())?,
+    )
+    .map_err(|_| "Failed to create object URL for blob".to_string())?;
     let anchor: HtmlAnchorElement = document
         .create_element("a")
         .map_err(|_| "Failed to create anchor element".to_string())?
@@ -217,8 +239,7 @@ fn download_file(content: &str, filename: &str) -> Result<(), String> {
         .map_err(|_| "Failed to remove anchor from body".to_string())?;
 
     // Clean up the object URL
-    Url::revoke_object_url(&url)
-        .map_err(|_| "Failed to revoke object URL".to_string())?;
+    Url::revoke_object_url(&url).map_err(|_| "Failed to revoke object URL".to_string())?;
 
     Ok(())
 }

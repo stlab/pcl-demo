@@ -1,10 +1,11 @@
-use anyhow::Context;
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::{fs::File, path::Path};
 
 /// In-memory representation of a pcl-demo document.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Document {
+    /// The content in HTML form.
     html: String,
 }
 
@@ -22,8 +23,8 @@ impl Document {
         }
     }
 
-    /// Returns the in-memory representation of the document at `p`.
-    pub fn new_from_file<P: AsRef<Path>>(p: P) -> anyhow::Result<Self> {
+    /// Returns the document at `p`.
+    pub fn new_from_file<P: AsRef<Path>>(p: P) -> Result<Self> {
         let p: &Path = p.as_ref();
 
         let f = File::open(p).context(format!("Failed to open: {p:?}"))?;
@@ -32,7 +33,7 @@ impl Document {
     }
 
     /// Saves the document as `p`.
-    pub fn save_to_file<P: AsRef<Path>>(&self, p: P) -> anyhow::Result<()> {
+    pub fn save_to_file<P: AsRef<Path>>(&self, p: P) -> Result<()> {
         let p: &Path = p.as_ref();
 
         let f = File::create(p).context(format!("Failed to create: {p:?}"))?;

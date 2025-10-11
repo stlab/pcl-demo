@@ -2,6 +2,7 @@ use crate::application_state::ApplicationState;
 use crate::platform::render_file_menu;
 use dioxus::prelude::*;
 
+/// The stylesheet for document rendering.
 const DOCUMENT_CSS: Asset = asset!("/assets/styling/document.css");
 
 /// The UI element that describes a document.

@@ -9,6 +9,5 @@ pub mod file_operations;
 
 pub use file_menu::render_file_menu;
 pub use file_operations::{
-    delete_document, get_file_size_impl, get_saved_files, load_document, save_document,
-    share_document_mobile,
+    delete_document, file_size, load_document, save_document, saved_files, share_document_mobile,
 };

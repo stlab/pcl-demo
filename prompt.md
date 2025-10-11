@@ -266,7 +266,18 @@ The initial UI rendered by the component on the client must be identical to the 
 
 ## Methodology
 
+Follow the guidance of the Better Code book, currently under development at https://github.com/stlab/better-code/tree/main/better-code/src.
+
+### Naming
+
+Avoid embedding type information (or anything else visible in the declaration) in names of non-types.  Never call an array `array`; find a name that describes a role.  If you can't find a descriptive name that is more than its type, a single-character name might be the best choice.
+
+Adapt the naming philosphy outlined in the Swift API guidelines (https://www.swift.org/documentation/api-design-guidelines/) as necessary for Rust. Keep in mind that when Rust programmers read code, the names of function parameters are very often displayed at call sites as though they were swift argument labels.
+
+
 ### Documentation
+
+Use the contract documentation methodology described in https://github.com/stlab/better-code/blob/main/better-code/src/chapter-2-contracts.md
 
 Document each function or method using the style outlined in the Swift API guidelines (https://www.swift.org/documentation/api-design-guidelines/), preferring to capture everything in the summary if reasonable.  Describe results at the level of human semantics, without replicating the logic of the function, including any regular expressions it may use. Be as concise as possible but include all information necessary to determine if the implementation is correct.
 
@@ -283,6 +294,92 @@ write:
     /// Saves the document as `p`.
     pub fn save_to_file<P: AsRef<Path>>(&self, p: P) -> anyhow::Result<()> {
 ```
+
+**Key documentation conventions:**
+
+* Functions that **return** values should be documented as "Returns xxx", not "Creates xxx":
+  ```rust
+  /// Returns an accelerator triggered by `key` with `base` modifier.
+  pub fn menu_key(&self, key: Code) -> Option<Accelerator>
+  ```
+
+* Functions with **side effects** should describe the action, not just the return value:
+  ```rust
+  /// Presents an open file dialog and returns the user's selection (or `None` if canceled).
+  pub fn file_from_open_dialog() -> Option<std::path::PathBuf>
+  ```
+
+* Use precise names that reflect semantics:
+  - `file_from_open_dialog()` - returns an existing file
+  - `path_from_save_dialog()` - returns a path (may not exist yet)
+
+* Don't use function names starting with `get_`. Functions that return values should have simple, direct names:
+  ```rust
+  // BAD: Unnecessary get_ prefix
+  fn get_saved_files() -> Vec<String> { ... }
+  fn get_file_size(filename: &str) -> usize { ... }
+
+  // GOOD: Direct, clear names
+  fn saved_files() -> Vec<String> { ... }
+  fn file_size(filename: &str) -> usize { ... }
+  ```
+
+* Avoid repeating information (including type information) that's visible in the declaration of the thing being documented.  For example, Documentation beginning "Extension trait…", "Blanket implementation…", or "Method…" is right out.
+
+### Code Organization
+
+* Avoid unnecessary constants for single-use values.
+
+* Keep “interesting” code out of format strings, which are opaque to rust-analyzer.  Being unable, in the IDE, to get type information on the expressions in `format!("{file_size(&filename).unwrap_or(0)}")` is inconvenient.
+
+* Avoid implementing `Default` trait when it just calls `new()` - it adds no value
+
+* Avoid creating "namespace structs" - empty structs that only serve as containers for static methods. Use standalone functions or proper abstractions instead:
+  ```rust
+  // BAD: Fake abstraction - just a namespace
+  pub struct PlatformDialogs;
+  impl PlatformDialogs {
+      pub fn file_from_open_dialog() -> Option<PathBuf> { ... }
+  }
+
+  // GOOD: Standalone function
+  pub fn file_from_open_dialog() -> Option<PathBuf> { ... }
+  ```
+
+* Only create structs/types when they represent actual abstractions with:
+  - State that needs to be maintained
+  - Behavior that operates on that state
+  - Multiple implementations (traits)
+  - Clear lifetime or ownership semantics
+
+* Use specific imports to eliminate explicit qualification:
+  ```rust
+  // BAD: Explicit qualification throughout code
+  use std::path;
+  fn open() -> Option<path::PathBuf> { ... }
+
+  // GOOD: Import specific types and use them directly
+  use std::path::PathBuf;
+  fn open() -> Option<PathBuf> { ... }
+  ```
+
+  ```rust
+  // BAD: Module qualification in calling code
+  mod platform;
+  fn main() {
+      let menu = platform::create_menu_bar();
+      let file = platform::file_from_open_dialog();
+  }
+
+  // GOOD: Import specific functions
+  mod platform;
+  use platform::{create_menu_bar, file_from_open_dialog};
+  fn main() {
+      let menu = create_menu_bar();
+      let file = file_from_open_dialog();
+  }
+  ```
+
 ### Testing
 
 You can test that the code builds with `dx build --package desktop`.  Because we have no conditional compilation there's no need to build other targets to check for compile errors.
