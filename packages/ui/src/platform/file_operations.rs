@@ -129,12 +129,14 @@ pub fn save_document_to_storage(content: &str, filename: &str) -> Result<()> {
 
 /// Returns the content of the file named `filename`.
 pub fn load_document_from_storage(filename: &str) -> Result<String> {
-    fs::read_to_string(&file_path(filename)).with_context(|| format!("Failed to read file '{filename}'"))
+    fs::read_to_string(&file_path(filename))
+        .with_context(|| format!("Failed to read file '{filename}'"))
 }
 
 /// Deletes the file named `filename`.
 pub fn delete_document_from_storage(filename: &str) -> Result<()> {
-    fs::remove_file(&file_path(filename)).with_context(|| format!("Failed to delete file '{filename}'"))
+    fs::remove_file(&file_path(filename))
+        .with_context(|| format!("Failed to delete file '{filename}'"))
 }
 
 /// Returns the names of all saved files.

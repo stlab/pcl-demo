@@ -92,12 +92,7 @@ fn add_app_menu_if_needed(menu_bar: &Menu) {
 }
 
 /// Appends a menu item with the given parameters.
-fn append_menu_item(
-    submenu: &Submenu,
-    id: &str,
-    text: &str,
-    accelerator: Option<Accelerator>,
-) {
+fn append_menu_item(submenu: &Submenu, id: &str, text: &str, accelerator: Option<Accelerator>) {
     submenu
         .append(&MenuItem::with_id(MenuId::new(id), text, true, accelerator))
         .expect(&format!("Failed to append menu item '{}' to submenu", text));
