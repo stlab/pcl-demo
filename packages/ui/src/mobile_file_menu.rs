@@ -11,7 +11,12 @@ use std::path::PathBuf;
 
 /// Individual menu item in the bottom sheet.
 #[component]
-fn MenuItem(icon: String, title: String, subtitle: String, onclick: EventHandler<MouseEvent>) -> Element {
+fn MenuItem(
+    icon: String,
+    title: String,
+    subtitle: String,
+    onclick: EventHandler<MouseEvent>,
+) -> Element {
     rsx! {
         button {
             class: "mobile-menu-item",
@@ -52,20 +57,18 @@ fn OpenMenuItem(
     mut saved_files_list: Signal<Vec<String>>,
     mut error_message: Signal<Option<String>>,
 ) -> Element {
-    let handle_click = move |_| {
-        match saved_files() {
-            Ok(files) => {
-                saved_files_list.set(files);
-                error_message.set(None);
-                file_list_open.set(true);
-                menu_open.set(false);
-            }
-            Err(e) => {
-                error_message.set(Some(format!("Failed to load saved files: {e}")));
-                saved_files_list.set(vec![]);
-                file_list_open.set(true);
-                menu_open.set(false);
-            }
+    let handle_click = move |_| match saved_files() {
+        Ok(files) => {
+            saved_files_list.set(files);
+            error_message.set(None);
+            file_list_open.set(true);
+            menu_open.set(false);
+        }
+        Err(e) => {
+            error_message.set(Some(format!("Failed to load saved files: {e}")));
+            saved_files_list.set(vec![]);
+            file_list_open.set(true);
+            menu_open.set(false);
         }
     };
 
@@ -230,30 +233,37 @@ fn MenuBottomSheet(
 
 /// Individual file item in the file list.
 #[component]
-fn FileItem(filename: String, on_open: EventHandler<String>, on_delete: EventHandler<String>) -> Element {
+fn FileItem(
+    filename: String,
+    on_open: EventHandler<String>,
+    on_delete: EventHandler<String>,
+) -> Element {
     let filename_for_open = filename.clone();
     let filename_for_delete = filename.clone();
-    
-    rsx! {
-        div {
-            class: "file-item",
-            button {
-                class: "file-item-button",
-                onclick: move |_| on_open.call(filename_for_open.clone()),
-                div { class: "file-item-icon", "📄" }
-                div {
-                    class: "file-item-info",
-                    div { class: "file-item-name", "{filename}" }
-                    div { class: "file-item-size", "{file_size(&filename).unwrap_or(0)} bytes" }
+    if let Ok(n) = file_size(&filename) {
+        rsx! {
+            div {
+                class: "file-item",
+                button {
+                    class: "file-item-button",
+                    onclick: move |_| on_open.call(filename_for_open.clone()),
+                    div { class: "file-item-icon", "📄" }
+                    div {
+                        class: "file-item-info",
+                        div { class: "file-item-name", "{filename}" }
+                        div { class: "file-item-size", "{n} bytes" }
+                    }
+                }
+                button {
+                    class: "file-delete-button",
+                    onclick: move |_| on_delete.call(filename_for_delete.clone()),
+                    title: "Delete file",
+                    "🗑️"
                 }
             }
-            button {
-                class: "file-delete-button",
-                onclick: move |_| on_delete.call(filename_for_delete.clone()),
-                title: "Delete file",
-                "🗑️"
-            }
         }
+    } else {
+        rsx! {}
     }
 }
 

@@ -330,6 +330,8 @@ write:
 
 * Avoid unnecessary constants for single-use values.
 
+* Keep “interesting” code out of format strings, which are opaque to rust-analyzer.  Being unable, in the IDE, to get type information on the expressions in `format!("{file_size(&filename).unwrap_or(0)}")` is inconvenient.
+
 * Avoid implementing `Default` trait when it just calls `new()` - it adds no value
 
 * Avoid creating "namespace structs" - empty structs that only serve as containers for static methods. Use standalone functions or proper abstractions instead:
