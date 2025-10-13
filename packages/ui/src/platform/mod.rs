@@ -7,7 +7,7 @@
 pub mod file_menu;
 pub mod file_operations;
 
-pub use file_menu::render_file_menu;
+pub use file_menu::FileMenu;
 pub use file_operations::{
     delete_document, file_size, load_document, save_document, saved_files, share_document_mobile,
 };
