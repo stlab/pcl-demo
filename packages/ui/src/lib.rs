@@ -18,3 +18,7 @@ pub use application_state::ApplicationState;
 
 mod document;
 pub use document::Document;
+
+mod shapes;
+mod shapes_doc;
+mod shapes_ui;
