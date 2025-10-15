@@ -40,7 +40,7 @@ impl<T> NormalizedJsResult<T> for Result<T, JsValue> {
             Ok(value) => Ok(value),
             Err(js_value) => {
                 // Check if this is a TypeError or other precondition violation
-                if let Some(error) = js_value.dyn_ref::<web_sys::js_sys::TypeError>() {
+                if let Some(error) = js_value.dyn_ref::<js_sys::TypeError>() {
                     panic!("JavaScript TypeError (precondition violation): {:?}", error);
                 }
                 
