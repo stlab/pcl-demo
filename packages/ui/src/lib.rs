@@ -18,3 +18,6 @@ pub use application_state::ApplicationState;
 
 mod document;
 pub use document::Document;
+
+pub mod wasm_utilities;
+pub use wasm_utilities::{JsonEncodedError, NormalizedJsResult};
