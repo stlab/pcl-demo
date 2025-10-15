@@ -15,6 +15,7 @@ serde_json = "1.0.143"
 # Web dependencies (available on all platforms for development ease)
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
+serde-wasm-bindgen = "0.6"
 web-sys = { version = "0.3", features = [
   "console",
   "Document",
