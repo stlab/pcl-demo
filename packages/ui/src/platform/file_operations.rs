@@ -14,6 +14,7 @@ use web_sys::{window, Blob, Element, HtmlAnchorElement, Url};
 // Other imports
 use anyhow::{anyhow, Context, Result};
 use js_sys::Array;
+use crate::wasm_utilities::JsResultExt;
 
 /// Saves `content` as `filename`.
 pub fn save_document(content: &str, filename: &str) -> Result<()> {
@@ -87,34 +88,30 @@ fn download_file(content: &str, filename: &str) -> Result<()> {
     array.push(&JsValue::from_str(content));
 
     // Synthesize a link to the content and (programmatically) click it
-    let blob = Blob::new_with_str_sequence(&array)
-        .map_err(|_| anyhow!("Failed to create Blob from content"))?;
-    let url = Url::create_object_url_with_blob(&blob)
-        .map_err(|_| anyhow!("Failed to create object URL for blob"))?;
+    let blob = Blob::new_with_str_sequence(&array).normalized()?;
+    let url = Url::create_object_url_with_blob(&blob).normalized()?;
     let anchor: HtmlAnchorElement = document
         .create_element("a")
-        .map_err(|_| anyhow!("Failed to create anchor element"))?
+        .normalized()?
         .dyn_into()
-        .map_err(|_| anyhow!("Failed to cast element to HtmlAnchorElement"))?;
+        .normalized()?;
 
     anchor.set_href(&url);
     anchor.set_download(filename);
     let anchor_element: &Element = anchor.as_ref();
     anchor_element
         .set_attribute("style", "display: none")
-        .map_err(|_| anyhow!("Failed to set style attribute on anchor"))?;
+        .normalized()?;
 
     let body = document
         .body()
         .ok_or_else(|| anyhow!("Failed to get document body"))?;
 
-    body.append_child(&anchor)
-        .map_err(|_| anyhow!("Failed to append anchor to body"))?;
+    body.append_child(&anchor).normalized()?;
     anchor.click();
-    body.remove_child(&anchor)
-        .map_err(|_| anyhow!("Failed to remove anchor from body"))?;
+    body.remove_child(&anchor).normalized()?;
 
-    Url::revoke_object_url(&url).map_err(|_| anyhow!("Failed to revoke object URL"))?;
+    Url::revoke_object_url(&url).normalized()?;
 
     Ok(())
 }

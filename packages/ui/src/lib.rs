@@ -1,5 +1,7 @@
 //! This crate contains all shared UI for the workspace.
 
+mod wasm_utilities;
+
 mod document_ui;
 pub use document_ui::DocumentUI;
 
