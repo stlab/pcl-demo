@@ -8,6 +8,8 @@ use serde_json::{from_str, to_string_pretty};
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::{JsCast, JsValue};
 use web_sys::{console::log_1, window, Blob, FileReader, HtmlAnchorElement, HtmlInputElement, Url};
+use anyhow::{anyhow, Result};
+use crate::wasm_utilities::JsResultExt;
 
 /// Menu button for creating a new document.
 #[component]
@@ -200,46 +202,41 @@ pub fn WebFileMenu(application_state: Signal<ApplicationState>) -> Element {
 // Browser API functions for file operations
 
 /// Saves a file called `filename` containing `content`.
-fn download_file(content: &str, filename: &str) -> Result<(), String> {
+fn download_file(content: &str, filename: &str) -> Result<()> {
     let document = window()
-        .ok_or_else(|| "Failed to get window object - browser API unavailable".to_string())?
+        .ok_or_else(|| anyhow!("Failed to get window object - browser API unavailable"))?
         .document()
-        .ok_or_else(|| "Failed to get document object - browser API unavailable".to_string())?;
+        .ok_or_else(|| anyhow!("Failed to get document object - browser API unavailable"))?;
 
     let array = Array::new();
     array.push(&JsValue::from_str(content));
 
-    let url = Url::create_object_url_with_blob(
-        &Blob::new_with_str_sequence(&array)
-            .map_err(|_| "Failed to create Blob from content".to_string())?,
-    )
-    .map_err(|_| "Failed to create object URL for blob".to_string())?;
+    let blob = Blob::new_with_str_sequence(&array).normalized()?;
+    let url = Url::create_object_url_with_blob(&blob).normalized()?;
     let anchor: HtmlAnchorElement = document
         .create_element("a")
-        .map_err(|_| "Failed to create anchor element".to_string())?
+        .normalized()?
         .dyn_into()
-        .map_err(|_| "Failed to cast element to HtmlAnchorElement".to_string())?;
+        .normalized()?;
 
     anchor.set_href(&url);
     anchor.set_download(filename);
     let anchor_element: &web_sys::Element = anchor.as_ref();
     anchor_element
         .set_attribute("style", "display: none")
-        .map_err(|_| "Failed to set style attribute on anchor".to_string())?;
+        .normalized()?;
 
     let body = document
         .body()
-        .ok_or_else(|| "Failed to get document body".to_string())?;
+        .ok_or_else(|| anyhow!("Failed to get document body"))?;
 
     // Append, click, and remove
-    body.append_child(&anchor)
-        .map_err(|_| "Failed to append anchor to body".to_string())?;
+    body.append_child(&anchor).normalized()?;
     anchor.click();
-    body.remove_child(&anchor)
-        .map_err(|_| "Failed to remove anchor from body".to_string())?;
+    body.remove_child(&anchor).normalized()?;
 
     // Clean up the object URL
-    Url::revoke_object_url(&url).map_err(|_| "Failed to revoke object URL".to_string())?;
+    Url::revoke_object_url(&url).normalized()?;
 
     Ok(())
 }
