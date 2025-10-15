@@ -59,3 +59,52 @@ fn is_precondition_violation(js_error: &JsValue) -> bool {
     // Additional exception types can be added here if needed.
     js_error.is_instance_of::<js_sys::TypeError>()
 }
+
+#[cfg(all(test, target_arch = "wasm32"))]
+mod tests {
+    use super::*;
+    use wasm_bindgen::JsCast;
+    use wasm_bindgen_test::*;
+
+    wasm_bindgen_test_configure!(run_in_browser);
+
+    // Helper to produce a generic JS Error as JsValue.
+    fn make_js_error(message: &str) -> JsValue {
+        js_sys::Error::new(message).unchecked_into::<js_sys::Error>().into()
+    }
+
+    // Helper to produce a TypeError as JsValue.
+    fn make_type_error(message: &str) -> JsValue {
+        js_sys::TypeError::new(message).unchecked_into::<js_sys::TypeError>().into()
+    }
+
+    #[wasm_bindgen_test]
+    fn normalized_ok_passthrough() {
+        let ok: Result<i32, JsValue> = Ok(42);
+        let result = JsResultExt::normalized(ok);
+        assert_eq!(result.unwrap(), 42);
+    }
+
+    #[wasm_bindgen_test]
+    fn normalized_converts_non_precondition_error() {
+        let err: Result<i32, JsValue> = Err(make_js_error("something went wrong"));
+        let result = JsResultExt::normalized(err);
+        match result {
+            Ok(_) => panic!("expected error"),
+            Err(e) => {
+                // The JSON should be an object with at least a message field.
+                // Exact shape may vary by environment; check it stringifies.
+                let s = e.to_string();
+                assert!(s.contains("something went wrong"));
+            }
+        }
+    }
+
+    #[wasm_bindgen_test]
+    #[should_panic]
+    fn normalized_panics_on_typeerror() {
+        let err: Result<i32, JsValue> = Err(make_type_error("bad arg"));
+        // should panic due to precondition violation
+        let _ = JsResultExt::normalized(err);
+    }
+}
