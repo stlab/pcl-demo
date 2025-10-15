@@ -69,14 +69,10 @@ mod tests {
     wasm_bindgen_test_configure!(run_in_browser);
 
     // Helper to produce a generic JS Error as JsValue.
-    fn make_js_error(message: &str) -> JsValue {
-        js_sys::Error::new(message).unchecked_into::<js_sys::Error>().into()
-    }
+    fn make_js_error(message: &str) -> JsValue { js_sys::Error::new(message).into() }
 
     // Helper to produce a TypeError as JsValue.
-    fn make_type_error(message: &str) -> JsValue {
-        js_sys::TypeError::new(message).unchecked_into::<js_sys::TypeError>().into()
-    }
+    fn make_type_error(message: &str) -> JsValue { js_sys::TypeError::new(message).into() }
 
     #[wasm_bindgen_test]
     fn normalized_ok_passthrough() {
