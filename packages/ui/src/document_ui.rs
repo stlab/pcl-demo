@@ -1,5 +1,5 @@
 use crate::application_state::ApplicationState;
-use crate::platform::render_file_menu;
+use crate::platform::FileMenu;
 use dioxus::prelude::*;
 
 /// The stylesheet for document rendering.
@@ -15,7 +15,7 @@ pub fn DocumentUI(application_state: Signal<ApplicationState>) -> Element {
         document::Link { rel: "stylesheet", href: DOCUMENT_CSS }
 
         // Show appropriate file menu for each platform
-        {render_file_menu(application_state)}
+        FileMenu { application_state }
 
         div {
             id: "document",
